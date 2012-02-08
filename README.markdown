@@ -64,9 +64,11 @@ A typical output of the /test location defined above is:
     read: ["body","Hello"]
     read: ["body",", wor"]
     read: ["body","ld"]
+    read: ["part_end"]
     read: ["header",["Content-Disposition","form-data; name=\"test\""]]
     read: ["body","value"]
     read: ["body","\r\n"]
+    read: ["part_end"]
     read: ["eof"]
     read: ["eof"]
 

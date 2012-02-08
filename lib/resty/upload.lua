@@ -205,7 +205,7 @@ function read_body_part(self)
             end
 
             self.state = STATE_EOF
-            return "eof", nil
+            return "part_end"
         end
 
         if data ~= "\r\n" then
@@ -216,7 +216,7 @@ function read_body_part(self)
         end
 
         self.state = STATE_READING_HEADER
-        return read_header(self)
+        return "part_end"
     end
 
     return "body", chunk
