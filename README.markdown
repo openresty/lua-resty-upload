@@ -17,6 +17,8 @@ This Lua library is a streaming file uploading API for the ngx_lua nginx module:
 
 http://wiki.nginx.org/HttpLuaModule
 
+The multipart/form-data MIME type is supported.
+
 This Lua library takes advantage of ngx_lua's cosocket API, which ensures
 100% nonblocking behavior.
 
