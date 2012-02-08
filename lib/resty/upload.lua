@@ -25,7 +25,7 @@ function new(self, chunk_size)
         return nil, "no boundary defined in Content-Type"
     end
 
-    print('boundary: "', boundary, '"')
+    -- print('boundary: "', boundary, '"')
 
     local sock, err = req_socket()
     if not sock then
@@ -92,7 +92,7 @@ function read_preamble(self)
         end
 
         -- discard the preamble data chunk
-        print("read preamble: ", preamble)
+        -- print("read preamble: ", preamble)
     end
 
     local ok, err = discard_line(self)
@@ -169,7 +169,7 @@ function read_header(self)
         return nil, nil, err
     end
 
-    print("read line: ", line)
+    -- print("read line: ", line)
 
     if line == "" then
         -- after the last header
