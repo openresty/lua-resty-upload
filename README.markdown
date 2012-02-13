@@ -1,7 +1,7 @@
 Name
 ====
 
-ngx_lua - Streaming reader and parser for HTTP file uploading based on ngx_lua cosocket
+lua-resty-upload - Streaming reader and parser for HTTP file uploading based on ngx_lua cosocket
 
 Status
 ======
