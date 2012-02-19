@@ -19,6 +19,10 @@ http://wiki.nginx.org/HttpLuaModule
 
 The multipart/form-data MIME type is supported.
 
+The API of this library just returns tokens one by one. The user just needs to call the `read` method repeatedly until a nil token type is returned. For each token returned from the `read` method, just check the first return value for the current token type. The token type can be `header`, `body`, and `part end`. Each `multipart/form-data` form field parsed consists of several `header` tokens holding each field header, several `body` tokens holding each body data chunk, and a `part end` flag indicating the field end.
+
+This is how streaming reading works. Even for giga bytes of file data input, the memory used in the lua land can be small and constant, as long as the user does not accumulate the input data chunks herself.
+
 This Lua library takes advantage of ngx_lua's cosocket API, which ensures
 100% nonblocking behavior.
 
