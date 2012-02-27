@@ -78,6 +78,8 @@ A typical output of the /test location defined above is:
     read: ["eof"]
     read: ["eof"]
 
+You can use the [lua-resty-string](https://github.com/agentzh/lua-resty-string) library to compute SHA-1 and MD5 digest of the file data incrementally.
+
 Author
 ======
 
@@ -102,7 +104,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 See Also
 ========
-* the ngx_lua module: http://wiki.nginx.org/HttpLuaModule
-* the lua-resty-memcached library: https://github.com/agentzh/lua-resty-memcached
-* the lua-resty-redis library: https://github.com/agentzh/lua-resty-redis
+* the [ngx_lua module](http://wiki.nginx.org/HttpLuaModule)
+* the [lua-resty-string](https://github.com/agentzh/lua-resty-string) library
+* the [lua-resty-memcached](https://github.com/agentzh/lua-resty-memcached) library
+* the [lua-resty-redis](https://github.com/agentzh/lua-resty-redis) library
 
