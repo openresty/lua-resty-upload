@@ -136,7 +136,7 @@ a similar API as resty.sha1.
 For big file uploading, it is important not to buffer all the data in memory.
 That is, you should never accumulate data chunks either in a huge Lua string or
 in a huge Lua table. You must write the data chunk into files as soon as possible and
-throw away the data chunk immediately (to let the Lua GC to free it up).
+throw away the data chunk immediately (to let the Lua GC free it up).
 
 Instead of writing the data chunk into files (as shown in the example above),
 you can also write the data chunks to upstream cosocket connections if you do
