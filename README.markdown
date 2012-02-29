@@ -39,7 +39,10 @@ Synopsis
                 local upload = require "resty.upload"
                 local cjson = require "cjson"
 
-                local form = upload:new(5)
+                local chunk_size = 5 -- should be set to 4096 or 8192
+                                     -- for real-world settings
+
+                local form = upload:new(chunk_size)
 
                 form:set_timeout(1000) -- 1 sec
 
@@ -78,7 +81,57 @@ A typical output of the /test location defined above is:
     read: ["eof"]
     read: ["eof"]
 
-You can use the [lua-resty-string](https://github.com/agentzh/lua-resty-string) library to compute SHA-1 and MD5 digest of the file data incrementally.
+You can use the [lua-resty-string](https://github.com/agentzh/lua-resty-string) library to compute SHA-1 and MD5 digest of the file data incrementally. Here is such an example:
+
+    local resty_sha1 = require "resty.sha1"
+    local upload = require "resty.upload"
+
+    local chunk_size = 4096
+    local form = upload:new(chunk_size)
+    local sha1 = resty_sha1:new()
+    local file
+    while true do
+        local typ, res, err = form:read()
+
+        if not typ then
+             ngx.say("failed to read: ", err)
+             return
+        end
+
+        if typ == "header" then
+            local file_name = my_get_file_name(res)
+            if file_name then
+                file = io.open(file_name, "w+")
+                if not file then
+                    ngx.say("failed to open file ", file_name)
+                    return
+                end
+            end
+
+         elseif typ == "body" then
+            if file then
+                file:write(res)
+                sha1:update(res)
+            end
+
+        elseif typ == "part_end" then
+            file:close()
+            file = nil
+            local sha1_sum = sha1:final()
+            sha1:reset()
+            my_save_sha1_sum(sha1_sum)
+
+        elseif typ == "eof" then
+            break
+
+        else
+            -- do nothing
+        end
+    end
+
+If you want to copmute MD5 sums for the uploaded files, just use the
+resty.md5 module shipped by the lua-resty-string library. It has
+a similar API as resty.sha1.
 
 Author
 ======
