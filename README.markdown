@@ -170,4 +170,5 @@ See Also
 * the [lua-resty-string](https://github.com/agentzh/lua-resty-string) library
 * the [lua-resty-memcached](https://github.com/agentzh/lua-resty-memcached) library
 * the [lua-resty-redis](https://github.com/agentzh/lua-resty-redis) library
+* the [lua-resty-mysql](https://github.com/agentzh/lua-resty-mysql) library
 
