@@ -5,7 +5,7 @@ use Cwd qw(cwd);
 
 repeat_each(2);
 
-plan tests => repeat_each() * (3 * blocks());
+plan tests => repeat_each() * (2 * blocks());
 
 my $pwd = cwd();
 
@@ -66,8 +66,6 @@ Content-Disposition: form-data; name="test"\r
 value\r
 \r\n-----------------------------820127721219505131303151179--\r
 }
---- no_error_log
-[error]
 --- response_body
 read: ["header",["Content-Disposition","form-data; name=\"file1\"; filename=\"a.txt\""]]
 read: ["header",["Content-Type","text\/plain"]]
