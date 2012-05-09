@@ -67,13 +67,13 @@ value\r
 \r\n-----------------------------820127721219505131303151179--\r
 }
 --- response_body
-read: ["header",["Content-Disposition","form-data; name=\"file1\"; filename=\"a.txt\""]]
-read: ["header",["Content-Type","text\/plain"]]
+read: ["header",["Content-Disposition","form-data; name=\"file1\"; filename=\"a.txt\"","Content-Disposition: form-data; name=\"file1\"; filename=\"a.txt\""]]
+read: ["header",["Content-Type","text\/plain","Content-Type: text\/plain"]]
 read: ["body","Hello"]
 read: ["body",", wor"]
 read: ["body","ld"]
 read: ["part_end"]
-read: ["header",["Content-Disposition","form-data; name=\"test\""]]
+read: ["header",["Content-Disposition","form-data; name=\"test\"","Content-Disposition: form-data; name=\"test\""]]
 read: ["body","value"]
 read: ["body","\r\n"]
 read: ["part_end"]

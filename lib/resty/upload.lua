@@ -183,7 +183,7 @@ function read_header(self)
         return 'header', line
     end
 
-    return 'header', {key, value}
+    return 'header', {key, value, line}
 end
 
 
