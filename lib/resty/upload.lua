@@ -2,7 +2,7 @@
 
 module("resty.upload", package.seeall)
 
-_VERSION = '0.02'
+_VERSION = '0.03'
 
 local MAX_LINE_SIZE = 512
 
