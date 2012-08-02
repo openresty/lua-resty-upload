@@ -11,7 +11,9 @@ local STATE_READING_HEADER = 2
 local STATE_READING_BODY = 3
 local STATE_EOF = 4
 
-local mt = { __index = resty.upload }
+local class = resty.upload
+
+local mt = { __index = class }
 
 local sub = string.sub
 local req_socket = ngx.req.socket
@@ -248,7 +250,7 @@ state_handlers = {
 
 
 -- to prevent use of casual module global variables
-getmetatable(resty.upload).__newindex = function (table, key, val)
+getmetatable(class).__newindex = function (table, key, val)
     error('attempt to write to undeclared variable "' .. key .. '": '
             .. debug.traceback())
 end
