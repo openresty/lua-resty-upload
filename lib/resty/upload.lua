@@ -1,8 +1,21 @@
--- Copyright (C) 2012 Zhang "agentzh" Yichun (章亦春)
+-- Copyright (C) 2012 Yichun Zhang (agentzh)
 
-module("resty.upload", package.seeall)
+
+local sub = string.sub
+local req_socket = ngx.req.socket
+local insert = table.insert
+local len = string.len
+local null = ngx.null
+local match = string.match
+local setmetatable = setmetatable
+local error = error
+local get_headers = ngx.req.get_headers
+
+
+module(...)
 
 _VERSION = '0.03'
+
 
 local MAX_LINE_SIZE = 512
 
@@ -11,16 +24,11 @@ local STATE_READING_HEADER = 2
 local STATE_READING_BODY = 3
 local STATE_EOF = 4
 
-local class = resty.upload
 
-local mt = { __index = class }
+local mt = { __index = _M }
 
-local sub = string.sub
-local req_socket = ngx.req.socket
-local insert = table.insert
-local len = string.len
-local null = ngx.null
 local state_handlers
+
 
 function new(self, chunk_size)
     local boundary = get_boundary()
@@ -180,7 +188,7 @@ function read_header(self)
         return read_body_part(self)
     end
 
-    local key, value = string.match(line, "([^: \t]+)%s*:%s*(.+)")
+    local key, value = match(line, "([^: \t]+)%s*:%s*(.+)")
     if not key then
         return 'header', line
     end
@@ -232,12 +240,12 @@ end
 
 
 function get_boundary()
-    local header = ngx.var.content_type
+    local header = get_headers().content_type
     if not header then
         return nil
     end
 
-    return string.match(header, ";%s+boundary=(%S+)")
+    return match(header, ";%s+boundary=(%S+)")
 end
 
 
@@ -249,9 +257,12 @@ state_handlers = {
 }
 
 
--- to prevent use of casual module global variables
-getmetatable(class).__newindex = function (table, key, val)
-    error('attempt to write to undeclared variable "' .. key .. '": '
-            .. debug.traceback())
-end
+local class_mt = {
+    -- to prevent use of casual module global variables
+    __newindex = function (table, key, val)
+        error('attempt to write to undeclared variable "' .. key .. '"')
+    end
+}
+
+setmetatable(_M, class_mt)
 
