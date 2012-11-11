@@ -14,7 +14,7 @@ local get_headers = ngx.req.get_headers
 
 module(...)
 
-_VERSION = '0.03'
+_VERSION = '0.04'
 
 
 local MAX_LINE_SIZE = 512
