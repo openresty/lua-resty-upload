@@ -11,6 +11,7 @@ local match = string.match
 local setmetatable = setmetatable
 local error = error
 local get_headers = ngx.req.get_headers
+-- local print = print
 
 
 module(...)
@@ -29,6 +30,21 @@ local STATE_EOF = 4
 local mt = { __index = _M }
 
 local state_handlers
+
+
+local function get_boundary()
+    local header = get_headers().content_type
+    if not header then
+        return nil
+    end
+
+    local m = match(header, ";%s+boundary=\"([^\"]+)\"")
+    if m then
+        return m
+    end
+
+    return match(header, ";%s+boundary=([^\",;]+)")
+end
 
 
 function new(self, chunk_size)
@@ -78,55 +94,7 @@ function set_timeout(self, timeout)
 end
 
 
-function read(self)
-    local size = self.size
-
-    local handler = state_handlers[self.state]
-    if handler then
-        return handler(self)
-    end
-
-    return nil, nil, "bad state: " .. self.state
-end
-
-
-function read_preamble(self)
-    local sock = self.sock
-    if not sock then
-        return nil, nil, "not initialized"
-    end
-
-    local size = self.size
-    local read2boundary = self.read2boundary
-
-    while true do
-        local preamble, err = read2boundary(size)
-        if not preamble then
-            break
-        end
-
-        -- discard the preamble data chunk
-        -- print("read preamble: ", preamble)
-    end
-
-    local ok, err = discard_line(self)
-    if not ok then
-        return nil, nil, err
-    end
-
-    local read2boundary, err = sock:receiveuntil("\r\n--" .. self.boundary)
-    if not read2boundary then
-        return nil, nil, err
-    end
-
-    self.read2boundary = read2boundary
-
-    self.state = STATE_READING_HEADER
-    return read_header(self)
-end
-
-
-function discard_line(self)
+local function discard_line(self)
     local read_line = self.read_line
 
     local line, err = self.read_line(MAX_LINE_SIZE)
@@ -147,7 +115,7 @@ function discard_line(self)
 end
 
 
-function discard_rest(self)
+local function discard_rest(self)
     local sock = self.sock
     local size = self.size
 
@@ -164,41 +132,7 @@ function discard_rest(self)
 end
 
 
-function read_header(self)
-    local read_line = self.read_line
-
-    local line, err = read_line(MAX_LINE_SIZE)
-    if err then
-        return nil, nil, err
-    end
-
-    local dummy, err = read_line(1)
-    if dummy then
-        return nil, nil, concat({"line too long: ", line, dummy, "..."}, "")
-    end
-
-    if err then
-        return nil, nil, err
-    end
-
-    -- print("read line: ", line)
-
-    if line == "" then
-        -- after the last header
-        self.state = STATE_READING_BODY
-        return read_body_part(self)
-    end
-
-    local key, value = match(line, "([^: \t]+)%s*:%s*(.+)")
-    if not key then
-        return 'header', line
-    end
-
-    return 'header', {key, value, line}
-end
-
-
-function read_body_part(self)
+local function read_body_part(self)
     local read2boundary = self.read2boundary
 
     local chunk, err = read2boundary(self.size)
@@ -235,23 +169,90 @@ function read_body_part(self)
 end
 
 
-function eof()
+local function read_header(self)
+    local read_line = self.read_line
+
+    local line, err = read_line(MAX_LINE_SIZE)
+    if err then
+        return nil, nil, err
+    end
+
+    local dummy, err = read_line(1)
+    if dummy then
+        return nil, nil, concat({"line too long: ", line, dummy, "..."}, "")
+    end
+
+    if err then
+        return nil, nil, err
+    end
+
+    -- print("read line: ", line)
+
+    if line == "" then
+        -- after the last header
+        self.state = STATE_READING_BODY
+        return read_body_part(self)
+    end
+
+    local key, value = match(line, "([^: \t]+)%s*:%s*(.+)")
+    if not key then
+        return 'header', line
+    end
+
+    return 'header', {key, value, line}
+end
+
+
+local function eof()
     return "eof", nil
 end
 
 
-function get_boundary()
-    local header = get_headers().content_type
-    if not header then
-        return nil
+function read(self)
+    local size = self.size
+
+    local handler = state_handlers[self.state]
+    if handler then
+        return handler(self)
     end
 
-    local m = match(header, ";%s+boundary=\"([^\"]+)\"")
-    if m then
-        return m
+    return nil, nil, "bad state: " .. self.state
+end
+
+
+local function read_preamble(self)
+    local sock = self.sock
+    if not sock then
+        return nil, nil, "not initialized"
     end
 
-    return match(header, ";%s+boundary=([^\",;]+)")
+    local size = self.size
+    local read2boundary = self.read2boundary
+
+    while true do
+        local preamble, err = read2boundary(size)
+        if not preamble then
+            break
+        end
+
+        -- discard the preamble data chunk
+        -- print("read preamble: ", preamble)
+    end
+
+    local ok, err = discard_line(self)
+    if not ok then
+        return nil, nil, err
+    end
+
+    local read2boundary, err = sock:receiveuntil("\r\n--" .. self.boundary)
+    if not read2boundary then
+        return nil, nil, err
+    end
+
+    self.read2boundary = read2boundary
+
+    self.state = STATE_READING_HEADER
+    return read_header(self)
 end
 
 
