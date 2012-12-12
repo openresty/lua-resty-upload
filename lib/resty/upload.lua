@@ -4,6 +4,7 @@
 local sub = string.sub
 local req_socket = ngx.req.socket
 local insert = table.insert
+local concat = table.concat
 local len = string.len
 local null = ngx.null
 local match = string.match
@@ -133,8 +134,7 @@ function discard_line(self)
 
     local dummy, err = self.read_line(1)
     if dummy then
-        return nil, table.concat({"line too long: ", line, dummy,
-                                      "..."}, "")
+        return nil, concat({"line too long: ", line, dummy, "..."}, "")
     end
 
     if err then
@@ -172,8 +172,7 @@ function read_header(self)
 
     local dummy, err = read_line(1)
     if dummy then
-        return nil, nil, table.concat({"line too long: ", line, dummy,
-                                      "..."}, "")
+        return nil, nil, concat({"line too long: ", line, dummy, "..."}, "")
     end
 
     if err then
@@ -220,7 +219,7 @@ function read_body_part(self)
         end
 
         if data ~= "\r\n" then
-            ok, err = discard_line(self)
+            local ok, err = discard_line(self)
             if not ok then
                 return nil, nil, err
             end
