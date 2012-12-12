@@ -192,3 +192,208 @@ failed to read: line too long: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 --- no_error_log
 [error]
 
+
+
+=== TEST 4: example from RFC 1521
+--- http_config eval: $::HttpConfig
+--- config
+    location /t {
+        content_by_lua '
+            local upload = require "resty.upload"
+            local cjson = require "cjson"
+
+            local form = upload:new(20)
+
+            form:set_timeout(1000) -- 1 sec
+
+            while true do
+                local typ, res, err = form:read()
+                if not typ then
+                    ngx.say("failed to read: ", err)
+                    return
+                end
+
+                ngx.say("read: ", cjson.encode({typ, res}))
+
+                if typ == "eof" then
+                    break
+                end
+            end
+
+            local typ, res, err = form:read()
+            ngx.say("read: ", cjson.encode({typ, res}))
+        ';
+    }
+--- more_headers
+Content-Type: multipart/form-data; boundary="simple boundary"
+--- request eval
+qq{POST /t
+This is the preamble.  It is to be ignored, though it
+is a handy place for mail composers to include an
+explanatory note to non-MIME conformant readers.
+--simple boundary\r
+\r
+This is implicitly typed plain ASCII text.
+It does NOT end with a linebreak.\r
+--simple boundary\r
+Content-type: text/plain; charset=us-ascii\r
+\r
+This is explicitly typed plain ASCII text.
+It DOES end with a linebreak.
+\r
+--simple boundary--\r
+This is the epilogue.  It is also to be ignored.
+
+}
+--- response_body
+read: ["body","This is implicitly t"]
+read: ["body","yped plain ASCII tex"]
+read: ["body","t.\nIt does NOT end w"]
+read: ["body","ith a linebreak."]
+read: ["part_end"]
+read: ["header",["Content-type","text\/plain; charset=us-ascii","Content-type: text\/plain; charset=us-ascii"]]
+read: ["body","This is explicitly t"]
+read: ["body","yped plain ASCII tex"]
+read: ["body","t.\nIt DOES end with "]
+read: ["body","a linebreak.\n"]
+read: ["part_end"]
+read: ["eof"]
+read: ["eof"]
+--- no_error_log
+[error]
+
+
+
+=== TEST 5: example from RFC 1521, no double quotes for the boundary value in the Content-Type response header
+--- http_config eval: $::HttpConfig
+--- config
+    location /t {
+        content_by_lua '
+            local upload = require "resty.upload"
+            local cjson = require "cjson"
+
+            local form = upload:new(20)
+
+            form:set_timeout(1000) -- 1 sec
+
+            while true do
+                local typ, res, err = form:read()
+                if not typ then
+                    ngx.say("failed to read: ", err)
+                    return
+                end
+
+                ngx.say("read: ", cjson.encode({typ, res}))
+
+                if typ == "eof" then
+                    break
+                end
+            end
+
+            local typ, res, err = form:read()
+            ngx.say("read: ", cjson.encode({typ, res}))
+        ';
+    }
+--- more_headers
+Content-Type: multipart/form-data; boundary=simple boundary
+--- request eval
+qq{POST /t
+This is the preamble.  It is to be ignored, though it
+is a handy place for mail composers to include an
+explanatory note to non-MIME conformant readers.
+--simple boundary\r
+\r
+This is implicitly typed plain ASCII text.
+It does NOT end with a linebreak.\r
+--simple boundary\r
+Content-type: text/plain; charset=us-ascii\r
+\r
+This is explicitly typed plain ASCII text.
+It DOES end with a linebreak.
+\r
+--simple boundary--\r
+This is the epilogue.  It is also to be ignored.
+
+}
+--- response_body
+read: ["body","This is implicitly t"]
+read: ["body","yped plain ASCII tex"]
+read: ["body","t.\nIt does NOT end w"]
+read: ["body","ith a linebreak."]
+read: ["part_end"]
+read: ["header",["Content-type","text\/plain; charset=us-ascii","Content-type: text\/plain; charset=us-ascii"]]
+read: ["body","This is explicitly t"]
+read: ["body","yped plain ASCII tex"]
+read: ["body","t.\nIt DOES end with "]
+read: ["body","a linebreak.\n"]
+read: ["part_end"]
+read: ["eof"]
+read: ["eof"]
+--- no_error_log
+[error]
+
+
+
+=== TEST 6: example from RFC 1521, using the default chunk size
+--- http_config eval: $::HttpConfig
+--- config
+    location /t {
+        content_by_lua '
+            local upload = require "resty.upload"
+            local cjson = require "cjson"
+
+            local form = upload:new()
+
+            form:set_timeout(1000) -- 1 sec
+
+            while true do
+                local typ, res, err = form:read()
+                if not typ then
+                    ngx.say("failed to read: ", err)
+                    return
+                end
+
+                ngx.say("read: ", cjson.encode({typ, res}))
+
+                if typ == "eof" then
+                    break
+                end
+            end
+
+            local typ, res, err = form:read()
+            ngx.say("read: ", cjson.encode({typ, res}))
+        ';
+    }
+--- more_headers
+Content-Type: multipart/form-data; boundary=simple boundary
+--- request eval
+qq{POST /t
+This is the preamble.  It is to be ignored, though it
+is a handy place for mail composers to include an
+explanatory note to non-MIME conformant readers.
+--simple boundary\r
+\r
+This is implicitly typed plain ASCII text.
+It does NOT end with a linebreak.\r
+--simple boundary\r
+Content-type: text/plain; charset=us-ascii\r
+\r
+This is explicitly typed plain ASCII text.
+It DOES end with a linebreak.
+\r
+--simple boundary--\r
+This is the epilogue.  It is also to be ignored.
+
+}
+
+--- response_body
+read: ["body","This is implicitly typed plain ASCII text.\nIt does NOT end with a linebreak."]
+read: ["part_end"]
+read: ["header",["Content-type","text\/plain; charset=us-ascii","Content-type: text\/plain; charset=us-ascii"]]
+read: ["body","This is explicitly typed plain ASCII text.\nIt DOES end with a linebreak.\n"]
+read: ["part_end"]
+read: ["eof"]
+read: ["eof"]
+--- no_error_log
+[error]
+

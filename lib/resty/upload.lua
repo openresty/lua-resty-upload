@@ -33,6 +33,9 @@ local state_handlers
 
 function new(self, chunk_size)
     local boundary = get_boundary()
+
+    -- print("boundary: ", boundary)
+
     if not boundary then
         return nil, "no boundary defined in Content-Type"
     end
@@ -43,7 +46,6 @@ function new(self, chunk_size)
     if not sock then
         return nil, err
     end
-
 
     local read2boundary, err = sock:receiveuntil("--" .. boundary)
     if not read2boundary then
@@ -244,7 +246,12 @@ function get_boundary()
         return nil
     end
 
-    return match(header, ";%s+boundary=(%S+)")
+    local m = match(header, ";%s+boundary=\"([^\"]+)\"")
+    if m then
+        return m
+    end
+
+    return match(header, ";%s+boundary=([^\",;]+)")
 end
 
 
