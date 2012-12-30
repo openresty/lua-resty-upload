@@ -33,7 +33,7 @@ local state_handlers
 
 
 local function get_boundary()
-    local header = get_headers().content_type
+    local header = get_headers()["content-type"]
     if not header then
         return nil
     end

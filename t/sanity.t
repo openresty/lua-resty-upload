@@ -225,7 +225,7 @@ failed to read: line too long: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
         ';
     }
 --- more_headers
-Content-Type: multipart/form-data; boundary="simple boundary"
+content-TYPE: multipart/form-data; boundary="simple boundary"
 --- request eval
 qq{POST /t
 This is the preamble.  It is to be ignored, though it
