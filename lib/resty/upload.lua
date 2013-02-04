@@ -38,12 +38,12 @@ local function get_boundary()
         return nil
     end
 
-    local m = match(header, ";%s+boundary=\"([^\"]+)\"")
+    local m = match(header, ";%s*boundary=\"([^\"]+)\"")
     if m then
         return m
     end
 
-    return match(header, ";%s+boundary=([^\",;]+)")
+    return match(header, ";%s*boundary=([^\",;]+)")
 end
 
 
