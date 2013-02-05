@@ -6,9 +6,7 @@ lua-resty-upload - Streaming reader and parser for HTTP file uploading based on 
 Status
 ======
 
-This library is considered experimental and still under active development.
-
-The API is still in flux and may change without notice.
+This library is considered production ready.
 
 Description
 ===========
