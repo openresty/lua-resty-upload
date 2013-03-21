@@ -11,6 +11,7 @@ local match = string.match
 local setmetatable = setmetatable
 local error = error
 local get_headers = ngx.req.get_headers
+local type = type
 -- local print = print
 
 
@@ -36,6 +37,10 @@ local function get_boundary()
     local header = get_headers()["content-type"]
     if not header then
         return nil
+    end
+
+    if type(header) == "table" then
+        header = header[1]
     end
 
     local m = match(header, ";%s*boundary=\"([^\"]+)\"")
