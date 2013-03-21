@@ -40,7 +40,11 @@ Synopsis
                 local chunk_size = 5 -- should be set to 4096 or 8192
                                      -- for real-world settings
 
-                local form = upload:new(chunk_size)
+                local form, err = upload:new(chunk_size)
+                if not form then
+                    ngx.log(ngx.ERR, "failed to new upload: ", err)
+                    ngx.exit(500)
+                end
 
                 form:set_timeout(1000) -- 1 sec
 
