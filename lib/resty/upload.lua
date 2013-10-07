@@ -1,11 +1,8 @@
--- Copyright (C) 2012 Yichun Zhang (agentzh)
+-- Copyright (C) Yichun Zhang (agentzh)
 
 
 local sub = string.sub
 local req_socket = ngx.req.socket
-local insert = table.insert
-local concat = table.concat
-local len = string.len
 local null = ngx.null
 local match = string.match
 local setmetatable = setmetatable
@@ -15,9 +12,7 @@ local type = type
 -- local print = print
 
 
-module(...)
-
-_VERSION = '0.08'
+local _M = { _VERSION = '0.08' }
 
 
 local MAX_LINE_SIZE = 512
@@ -52,7 +47,7 @@ local function get_boundary()
 end
 
 
-function new(self, chunk_size)
+function _M.new(self, chunk_size)
     local boundary = get_boundary()
 
     -- print("boundary: ", boundary)
@@ -89,7 +84,7 @@ function new(self, chunk_size)
 end
 
 
-function set_timeout(self, timeout)
+function _M.set_timeout(self, timeout)
     local sock = self.sock
     if not sock then
         return nil, "not initialized"
@@ -109,7 +104,7 @@ local function discard_line(self)
 
     local dummy, err = self.read_line(1)
     if dummy then
-        return nil, concat({"line too long: ", line, dummy, "..."}, "")
+        return nil, "line too long: " .. line .. dummy .. "..."
     end
 
     if err then
@@ -184,7 +179,7 @@ local function read_header(self)
 
     local dummy, err = read_line(1)
     if dummy then
-        return nil, nil, concat({"line too long: ", line, dummy, "..."}, "")
+        return nil, nil, "line too long: " .. line .. dummy .. "..."
     end
 
     if err then
@@ -213,7 +208,7 @@ local function eof()
 end
 
 
-function read(self)
+function _M.read(self)
     local size = self.size
 
     local handler = state_handlers[self.state]
@@ -269,12 +264,4 @@ state_handlers = {
 }
 
 
-local class_mt = {
-    -- to prevent use of casual module global variables
-    __newindex = function (table, key, val)
-        error('attempt to write to undeclared variable "' .. key .. '"')
-    end
-}
-
-setmetatable(_M, class_mt)
-
+return _M
