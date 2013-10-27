@@ -29,6 +29,7 @@ Note that at least [ngx_lua 0.7.9](https://github.com/chaoslawful/lua-nginx-modu
 Synopsis
 ========
 
+```lua
     lua_package_path "/path/to/lua-resty-redis/lib/?.lua;;";
 
     server {
@@ -67,6 +68,7 @@ Synopsis
             ';
         }
     }
+```
 
 A typical output of the /test location defined above is:
 
@@ -85,6 +87,7 @@ A typical output of the /test location defined above is:
 
 You can use the [lua-resty-string](https://github.com/agentzh/lua-resty-string) library to compute SHA-1 and MD5 digest of the file data incrementally. Here is such an example:
 
+```lua
     local resty_sha1 = require "resty.sha1"
     local upload = require "resty.upload"
 
@@ -130,9 +133,10 @@ You can use the [lua-resty-string](https://github.com/agentzh/lua-resty-string) 
             -- do nothing
         end
     end
+```
 
 If you want to copmute MD5 sums for the uploaded files, just use the
-resty.md5 module shipped by the lua-resty-string library. It has
+resty.md5 module shipped by the [lua-resty-string](https://github.com/agentzh/lua-resty-string) library. It has
 a similar API as resty.sha1.
 
 For big file uploading, it is important not to buffer all the data in memory.
