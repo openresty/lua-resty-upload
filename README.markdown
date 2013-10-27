@@ -72,6 +72,7 @@ Synopsis
 
 A typical output of the /test location defined above is:
 
+```json
     read: ["header",["Content-Disposition","form-data; name=\"file1\"; filename=\"a.txt\"","Content-Disposition: form-data; name=\"file1\"; filename=\"a.txt\""]]
     read: ["header",["Content-Type","text\/plain","Content-Type: text\/plain"]]
     read: ["body","Hello"]
@@ -84,6 +85,7 @@ A typical output of the /test location defined above is:
     read: ["part_end"]
     read: ["eof"]
     read: ["eof"]
+```
 
 You can use the [lua-resty-string](https://github.com/agentzh/lua-resty-string) library to compute SHA-1 and MD5 digest of the file data incrementally. Here is such an example:
 
