@@ -3,6 +3,17 @@ Name
 
 lua-resty-upload - Streaming reader and parser for HTTP file uploading based on ngx_lua cosocket
 
+Table of Contents
+=================
+
+* [Name](#name)
+* [Status](#status)
+* [Description](#description)
+* [Synopsis](#synopsis)
+* [Author](#author)
+* [Copyright and License](#copyright-and-license)
+* [See Also](#see-also)
+
 Status
 ======
 
@@ -148,10 +159,14 @@ Instead of writing the data chunk into files (as shown in the example above),
 you can also write the data chunks to upstream cosocket connections if you do
 not want to save the data on local file systems.
 
+[Back to TOC](#table-of-contents)
+
 Author
 ======
 
 Yichun "agentzh" Zhang (章亦春) <agentzh@gmail.com>, CloudFlare Inc.
+
+[Back to TOC](#table-of-contents)
 
 Copyright and License
 =====================
@@ -170,6 +185,8 @@ Redistribution and use in source and binary forms, with or without modification,
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+[Back to TOC](#table-of-contents)
+
 See Also
 ========
 * the [ngx_lua module](http://wiki.nginx.org/HttpLuaModule)
@@ -177,4 +194,6 @@ See Also
 * the [lua-resty-memcached](https://github.com/agentzh/lua-resty-memcached) library
 * the [lua-resty-redis](https://github.com/agentzh/lua-resty-redis) library
 * the [lua-resty-mysql](https://github.com/agentzh/lua-resty-mysql) library
+
+[Back to TOC](#table-of-contents)
 
