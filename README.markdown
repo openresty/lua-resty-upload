@@ -146,7 +146,7 @@ You can use the [lua-resty-string](https://github.com/agentzh/lua-resty-string) 
     end
 ```
 
-If you want to copmute MD5 sums for the uploaded files, just use the
+If you want to compute MD5 sums for the uploaded files, just use the
 resty.md5 module shipped by the [lua-resty-string](https://github.com/agentzh/lua-resty-string) library. It has
 a similar API as resty.sha1.
 
