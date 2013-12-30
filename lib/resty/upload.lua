@@ -12,7 +12,7 @@ local type = type
 -- local print = print
 
 
-local _M = { _VERSION = '0.08' }
+local _M = { _VERSION = '0.09' }
 
 
 local MAX_LINE_SIZE = 512
