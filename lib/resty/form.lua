@@ -7,7 +7,7 @@ Description:
 
 FileId:
 $Id: form.lua
-2014-07-04 09:12 星期五
+2014-07-09 16:08 星期三
 
 License:
 Copyright 2014, mochui.net, all rights reserved.
@@ -63,7 +63,7 @@ local function decodeHeader(res)
     return key, value;
 end
 
-function getFormTable()
+function getFormTable(tmpFileFolder)
     local chunkSize = 4096;
     local formdata  = {};
     local part      = {};
@@ -72,6 +72,7 @@ function getFormTable()
     
     local headers   = {};
 
+    util.log("start to decode form data");
     local form, err = upload:new(chunkSize);
     if not form then
         return nil, err;
@@ -88,6 +89,7 @@ function getFormTable()
 
         if typ == "header" then
             local key, value = decodeHeader(res);
+            util.log("header:" .. tostring(res[3]));
             if key then
                 part.headers[key] = value;
             else
@@ -96,14 +98,35 @@ function getFormTable()
         end
         
         if typ == "body" then
-            part.body = part.body .. res;
+            if part.headers["Content-Disposition"] 
+                and part.headers["Content-Disposition"].paras
+                and part.headers["Content-Disposition"].paras.filename then    
+                local filePath = tmpFileFolder or "/tmp";
+                local fullFileName = filePath .. "/" 
+                    .. part.headers["Content-Disposition"].paras.filename;
+                if not part.tmpFd then
+                    part.tmpFd, err = io.open(fullFileName, "w");
+                    if not part.tmpFd then
+                        return nil, "failed to open tmpfile:" 
+                                    .. tostring(fullFileName);
+                    end
+                    part.body = fullFileName;
+                end
+                part.tmpFd:write(res);
+            else
+                part.body = part.body .. res;
+            end
         end
 
         if typ == "part_end" then
+            if part.tmpFd then
+                part.tmpFd:close();
+            end
             table.insert(formdata, part);
             part            = {};
             part.headers    = {};
-            part.body       = "";
+            part.body       = ""; 
+            part.tmpFd      = nil;
         end
 
         if typ == "eof" then
