@@ -26,9 +26,15 @@ local function decodeContentDisposition(value)
         ret                 = {};
         ret.dispositionType = typ;
         ret.paras           = {};
-        
+
         if paras then
-            for paraKey, paraValue in string.gmatch(paras, '([%w%.%-_]+)="([%w%.%-_]+)"') do
+            for paraKey, paraValue in string.gmatch(paras, '([%w%.%-_]+)="([^=;]+)"') do
+                -- Fixed, IE <= 8 problem, filename is fullpath, "c:\Users\fuckIE\xx.tar.gz", other borwsers just have a basename "xx.tar.gz".
+                if paraKey == "filename" then
+                    local basename, _ = string.match(paraValue, '[^\\]+$') or ""
+                    paraValue = basename;
+                end
+
                 ret.paras[paraKey] = paraValue;
             end
         end
@@ -69,7 +75,7 @@ function getFormTable(tmpFileFolder)
     local part      = {};
     part.headers    = {};
     part.body       = "";
-    
+
     local headers   = {};
 
     util.log("start to decode form data");
@@ -96,7 +102,7 @@ function getFormTable(tmpFileFolder)
                 return nil, "failed to decode header:" .. res;
             end
         end
-        
+
         if typ == "body" then
             if part.headers["Content-Disposition"] 
                 and part.headers["Content-Disposition"].paras
