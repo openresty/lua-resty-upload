@@ -97,12 +97,12 @@ end
 local function discard_line(self)
     local read_line = self.read_line
 
-    local line, err = self.read_line(MAX_LINE_SIZE)
+    local line, err = read_line(MAX_LINE_SIZE)
     if not line then
         return nil, err
     end
 
-    local dummy, err = self.read_line(1)
+    local dummy, err = read_line(1)
     if dummy then
         return nil, "line too long: " .. line .. dummy .. "..."
     end
