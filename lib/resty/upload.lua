@@ -3,7 +3,6 @@
 
 local sub = string.sub
 local req_socket = ngx.req.socket
-local null = ngx.null
 local match = string.match
 local setmetatable = setmetatable
 local error = error
