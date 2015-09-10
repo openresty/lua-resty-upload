@@ -7,6 +7,7 @@ local match = string.match
 local setmetatable = setmetatable
 local get_headers = ngx.req.get_headers
 local type = type
+local ngx_var = ngx.var
 -- local print = print
 
 
@@ -27,7 +28,7 @@ local state_handlers
 
 
 local function get_boundary()
-    local header = get_headers()["content-type"]
+    local header = ngx_var.content_type
     if not header then
         return nil
     end
