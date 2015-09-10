@@ -27,7 +27,7 @@ local state_handlers
 
 
 local function get_boundary()
-    local header = get_headers()["content-type"]
+    local header = ngx.var.http_content_type
     if not header then
         return nil
     end
@@ -109,7 +109,7 @@ local function discard_line(self)
         return nil, err
     end
 
-    return 1
+    return line
 end
 
 
@@ -168,20 +168,9 @@ end
 
 
 local function read_header(self)
-    local read_line = self.read_line
-
-    local line, err = read_line(MAX_LINE_SIZE)
-    if err then
-        return nil, nil, err
-    end
-
-    local dummy, err = read_line(1)
-    if dummy then
-        return nil, nil, "line too long: " .. line .. dummy .. "..."
-    end
-
-    if err then
-        return nil, nil, err
+    local line, err = discard_line(self)
+    if not line then
+       return nil, nil, err
     end
 
     -- print("read line: ", line)
