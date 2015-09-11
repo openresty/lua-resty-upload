@@ -5,7 +5,6 @@ local sub = string.sub
 local req_socket = ngx.req.socket
 local match = string.match
 local setmetatable = setmetatable
-local get_headers = ngx.req.get_headers
 local type = type
 local ngx_var = ngx.var
 -- local print = print
