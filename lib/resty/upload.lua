@@ -1,7 +1,7 @@
 -- Copyright (C) Yichun Zhang (agentzh)
 
 
-local sub = string.sub
+-- local sub = string.sub
 local req_socket = ngx.req.socket
 local match = string.match
 local setmetatable = setmetatable
@@ -207,7 +207,7 @@ end
 
 
 function _M.read(self)
-    local size = self.size
+    -- local size = self.size
 
     local handler = state_handlers[self.state]
     if handler then
@@ -228,7 +228,7 @@ local function read_preamble(self)
     local read2boundary = self.read2boundary
 
     while true do
-        local preamble, err = read2boundary(size)
+        local preamble = read2boundary(size)
         if not preamble then
             break
         end
