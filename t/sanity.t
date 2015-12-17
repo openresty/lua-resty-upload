@@ -590,3 +590,61 @@ read: ["eof"]
 --- no_error_log
 [error]
 
+
+
+=== TEST 10: long in-part header line
+--- http_config eval: $::HttpConfig
+--- config
+    location /t {
+        content_by_lua '
+            local upload = require "resty.upload"
+            local cjson = require "cjson"
+
+            local form = upload:new(5, 1024) -- max_line_size = 1024
+
+            form:set_timeout(1000) -- 1 sec
+
+            while true do
+                local typ, res, err = form:read()
+                if not typ then
+                    ngx.say("failed to read: ", err)
+                    return
+                end
+
+                ngx.say("read: ", cjson.encode({typ, res}))
+
+                if typ == "eof" then
+                    break
+                end
+            end
+
+            local typ, res, err = form:read()
+            ngx.say("read: ", cjson.encode({typ, res}))
+        ';
+    }
+--- more_headers
+Content-Type: multipart/form-data; boundary=---------------------------820127721219505131303151179
+--- request eval
+qq{POST /t\n-----------------------------820127721219505131303151179\r
+Content-Disposition: form-data; name="file1"; filename="a.txt"\r
+Content-Type: text/plain\r
+} . ("Hello, world" x 64) . qq{\r\n-----------------------------820127721219505131303151179\r
+Content-Disposition: form-data; name="test"\r
+\r
+value\r
+\r\n-----------------------------820127721219505131303151179--\r
+}
+--- response_body
+read: ["header",["Content-Disposition","form-data; name=\"file1\"; filename=\"a.txt\"","Content-Disposition: form-data; name=\"file1\"; filename=\"a.txt\""]]
+read: ["header",["Content-Type","text\/plain","Content-Type: text\/plain"]]
+read: ["header","Hello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, world"]
+read: ["header","-----------------------------820127721219505131303151179"]
+read: ["header",["Content-Disposition","form-data; name=\"test\"","Content-Disposition: form-data; name=\"test\""]]
+read: ["body","value"]
+read: ["body","\r\n"]
+read: ["part_end"]
+read: ["eof"]
+read: ["eof"]
+--- no_error_log
+[error]
+

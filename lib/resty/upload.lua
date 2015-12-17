@@ -13,6 +13,7 @@ local ngx_var = ngx.var
 local _M = { _VERSION = '0.09' }
 
 
+local CHUNK_SIZE = 4096
 local MAX_LINE_SIZE = 512
 
 local STATE_BEGIN = 1
@@ -45,7 +46,7 @@ local function get_boundary()
 end
 
 
-function _M.new(self, chunk_size)
+function _M.new(self, chunk_size, max_line_size)
     local boundary = get_boundary()
 
     -- print("boundary: ", boundary)
@@ -73,7 +74,8 @@ function _M.new(self, chunk_size)
 
     return setmetatable({
         sock = sock,
-        size = chunk_size or 4096,
+        size = chunk_size or CHUNK_SIZE,
+        line_size = max_line_size or MAX_LINE_SIZE,
         read2boundary = read2boundary,
         read_line = read_line,
         boundary = boundary,
@@ -95,7 +97,7 @@ end
 local function discard_line(self)
     local read_line = self.read_line
 
-    local line, err = read_line(MAX_LINE_SIZE)
+    local line, err = read_line(self.line_size)
     if not line then
         return nil, err
     end
@@ -170,7 +172,7 @@ end
 local function read_header(self)
     local read_line = self.read_line
 
-    local line, err = read_line(MAX_LINE_SIZE)
+    local line, err = read_line(self.line_size)
     if err then
         return nil, nil, err
     end
