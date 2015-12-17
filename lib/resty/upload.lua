@@ -46,7 +46,7 @@ local function get_boundary()
 end
 
 
-function _M.new(self, chunk_size)
+function _M.new(self, chunk_size, line_size)
     local boundary = get_boundary()
 
     -- print("boundary: ", boundary)
@@ -75,7 +75,7 @@ function _M.new(self, chunk_size)
     return setmetatable({
         sock = sock,
         size = chunk_size or CHUNK_SIZE,
-        line_size = MAX_LINE_SIZE,
+        line_size = line_size or MAX_LINE_SIZE,
         read2boundary = read2boundary,
         read_line = read_line,
         boundary = boundary,
@@ -91,11 +91,6 @@ function _M.set_timeout(self, timeout)
     end
 
     return sock:settimeout(timeout)
-end
-
-
-function _M.set_line_size(self, max_line_size)
-   self.line_size = max_line_size
 end
 
 
