@@ -35,7 +35,7 @@ This is how streaming reading works. Even for giga bytes of file data input, the
 This Lua library takes advantage of ngx_lua's cosocket API, which ensures
 100% nonblocking behavior.
 
-Note that at least [ngx_lua 0.7.9](https://github.com/chaoslawful/lua-nginx-module/tags) or [ngx_openresty 1.2.4.14](http://openresty.org/#Download) is required.
+Note that at least [ngx_lua 0.7.9](https://github.com/chaoslawful/lua-nginx-module/tags) or [OpenResty 1.2.4.14](http://openresty.org/#Download) is required.
 
 Synopsis
 ========
@@ -173,7 +173,7 @@ Copyright and License
 
 This module is licensed under the BSD license.
 
-Copyright (C) 2012-2013, by Yichun "agentzh" Zhang (章亦春) <agentzh@gmail.com>, CloudFlare Inc.
+Copyright (C) 2012-2016, by Yichun "agentzh" Zhang (章亦春) <agentzh@gmail.com>, CloudFlare Inc.
 
 All rights reserved.
 
