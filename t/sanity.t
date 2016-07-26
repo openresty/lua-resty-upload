@@ -10,7 +10,7 @@ plan tests => repeat_each() * (3 * blocks());
 my $pwd = cwd();
 
 our $HttpConfig = qq{
-    lua_package_path "$pwd/lib/?.lua;;";
+    lua_package_path "$pwd/lib/?.lua;$pwd/t/lib/?.lua;;";
     lua_package_cpath "/usr/local/openresty-debug/lualib/?.so;/usr/local/openresty/lualib/?.so;;";
 };
 
@@ -29,7 +29,7 @@ __DATA__
     location /t {
         content_by_lua '
             local upload = require "resty.upload"
-            local cjson = require "cjson"
+            local ljson = require "ljson"
 
             local form = upload:new(5)
 
@@ -42,7 +42,7 @@ __DATA__
                     return
                 end
 
-                ngx.say("read: ", cjson.encode({typ, res}))
+                ngx.say("read: ", ljson.encode({typ, res}))
 
                 if typ == "eof" then
                     break
@@ -50,7 +50,7 @@ __DATA__
             end
 
             local typ, res, err = form:read()
-            ngx.say("read: ", cjson.encode({typ, res}))
+            ngx.say("read: ", ljson.encode({typ, res}))
         ';
     }
 --- more_headers
@@ -68,7 +68,7 @@ value\r
 }
 --- response_body
 read: ["header",["Content-Disposition","form-data; name=\"file1\"; filename=\"a.txt\"","Content-Disposition: form-data; name=\"file1\"; filename=\"a.txt\""]]
-read: ["header",["Content-Type","text\/plain","Content-Type: text\/plain"]]
+read: ["header",["Content-Type","text/plain","Content-Type: text/plain"]]
 read: ["body","Hello"]
 read: ["body",", wor"]
 read: ["body","ld"]
@@ -90,7 +90,7 @@ read: ["eof"]
     location /t {
         content_by_lua '
             local upload = require "resty.upload"
-            local cjson = require "cjson"
+            local ljson = require "ljson"
 
             local form = upload:new(5)
 
@@ -103,7 +103,7 @@ read: ["eof"]
                     return
                 end
 
-                ngx.say("read: ", cjson.encode({typ, res}))
+                ngx.say("read: ", ljson.encode({typ, res}))
 
                 if typ == "eof" then
                     break
@@ -111,7 +111,7 @@ read: ["eof"]
             end
 
             local typ, res, err = form:read()
-            ngx.say("read: ", cjson.encode({typ, res}))
+            ngx.say("read: ", ljson.encode({typ, res}))
         ';
     }
 --- more_headers
@@ -128,7 +128,7 @@ value\r
 }
 --- response_body
 read: ["header",["Content-Disposition","form-data; name=\"file1\"; filename=\"a.txt\"","Content-Disposition: form-data; name=\"file1\"; filename=\"a.txt\""]]
-read: ["header",["Content-Type","text\/plain","Content-Type: text\/plain"]]
+read: ["header",["Content-Type","text/plain","Content-Type: text/plain"]]
 failed to read: line too long: Hello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, wo...
 --- no_error_log
 [error]
@@ -141,7 +141,7 @@ failed to read: line too long: Hello, worldHello, worldHello, worldHello, worldH
     location /t {
         content_by_lua '
             local upload = require "resty.upload"
-            local cjson = require "cjson"
+            local ljson = require "ljson"
 
             local form = upload:new(5)
 
@@ -154,7 +154,7 @@ failed to read: line too long: Hello, worldHello, worldHello, worldHello, worldH
                     return
                 end
 
-                ngx.say("read: ", cjson.encode({typ, res}))
+                ngx.say("read: ", ljson.encode({typ, res}))
 
                 if typ == "eof" then
                     break
@@ -162,7 +162,7 @@ failed to read: line too long: Hello, worldHello, worldHello, worldHello, worldH
             end
 
             local typ, res, err = form:read()
-            ngx.say("read: ", cjson.encode({typ, res}))
+            ngx.say("read: ", ljson.encode({typ, res}))
         ';
     }
 --- more_headers
@@ -180,7 +180,7 @@ value\r
 }
 --- response_body
 read: ["header",["Content-Disposition","form-data; name=\"file1\"; filename=\"a.txt\"","Content-Disposition: form-data; name=\"file1\"; filename=\"a.txt\""]]
-read: ["header",["Content-Type","text\/plain","Content-Type: text\/plain"]]
+read: ["header",["Content-Type","text/plain","Content-Type: text/plain"]]
 read: ["body","Hello"]
 read: ["body",", wor"]
 read: ["body","ld"]
@@ -200,7 +200,7 @@ failed to read: line too long: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
     location /t {
         content_by_lua '
             local upload = require "resty.upload"
-            local cjson = require "cjson"
+            local ljson = require "ljson"
 
             local form = upload:new(20)
 
@@ -213,7 +213,7 @@ failed to read: line too long: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
                     return
                 end
 
-                ngx.say("read: ", cjson.encode({typ, res}))
+                ngx.say("read: ", ljson.encode({typ, res}))
 
                 if typ == "eof" then
                     break
@@ -221,7 +221,7 @@ failed to read: line too long: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
             end
 
             local typ, res, err = form:read()
-            ngx.say("read: ", cjson.encode({typ, res}))
+            ngx.say("read: ", ljson.encode({typ, res}))
         ';
     }
 --- more_headers
@@ -251,7 +251,7 @@ read: ["body","yped plain ASCII tex"]
 read: ["body","t.\nIt does NOT end w"]
 read: ["body","ith a linebreak."]
 read: ["part_end"]
-read: ["header",["Content-type","text\/plain; charset=us-ascii","Content-type: text\/plain; charset=us-ascii"]]
+read: ["header",["Content-type","text/plain; charset=us-ascii","Content-type: text/plain; charset=us-ascii"]]
 read: ["body","This is explicitly t"]
 read: ["body","yped plain ASCII tex"]
 read: ["body","t.\nIt DOES end with "]
@@ -270,7 +270,7 @@ read: ["eof"]
     location /t {
         content_by_lua '
             local upload = require "resty.upload"
-            local cjson = require "cjson"
+            local ljson = require "ljson"
 
             local form = upload:new(20)
 
@@ -283,7 +283,7 @@ read: ["eof"]
                     return
                 end
 
-                ngx.say("read: ", cjson.encode({typ, res}))
+                ngx.say("read: ", ljson.encode({typ, res}))
 
                 if typ == "eof" then
                     break
@@ -291,7 +291,7 @@ read: ["eof"]
             end
 
             local typ, res, err = form:read()
-            ngx.say("read: ", cjson.encode({typ, res}))
+            ngx.say("read: ", ljson.encode({typ, res}))
         ';
     }
 --- more_headers
@@ -321,7 +321,7 @@ read: ["body","yped plain ASCII tex"]
 read: ["body","t.\nIt does NOT end w"]
 read: ["body","ith a linebreak."]
 read: ["part_end"]
-read: ["header",["Content-type","text\/plain; charset=us-ascii","Content-type: text\/plain; charset=us-ascii"]]
+read: ["header",["Content-type","text/plain; charset=us-ascii","Content-type: text/plain; charset=us-ascii"]]
 read: ["body","This is explicitly t"]
 read: ["body","yped plain ASCII tex"]
 read: ["body","t.\nIt DOES end with "]
@@ -340,7 +340,7 @@ read: ["eof"]
     location /t {
         content_by_lua '
             local upload = require "resty.upload"
-            local cjson = require "cjson"
+            local ljson = require "ljson"
 
             local form = upload:new()
 
@@ -353,7 +353,7 @@ read: ["eof"]
                     return
                 end
 
-                ngx.say("read: ", cjson.encode({typ, res}))
+                ngx.say("read: ", ljson.encode({typ, res}))
 
                 if typ == "eof" then
                     break
@@ -361,7 +361,7 @@ read: ["eof"]
             end
 
             local typ, res, err = form:read()
-            ngx.say("read: ", cjson.encode({typ, res}))
+            ngx.say("read: ", ljson.encode({typ, res}))
         ';
     }
 --- more_headers
@@ -389,7 +389,7 @@ This is the epilogue.  It is also to be ignored.
 --- response_body
 read: ["body","This is implicitly typed plain ASCII text.\nIt does NOT end with a linebreak."]
 read: ["part_end"]
-read: ["header",["Content-type","text\/plain; charset=us-ascii","Content-type: text\/plain; charset=us-ascii"]]
+read: ["header",["Content-type","text/plain; charset=us-ascii","Content-type: text/plain; charset=us-ascii"]]
 read: ["body","This is explicitly typed plain ASCII text.\nIt DOES end with a linebreak.\n"]
 read: ["part_end"]
 read: ["eof"]
@@ -405,7 +405,7 @@ read: ["eof"]
     location /t {
         content_by_lua '
             local upload = require "resty.upload"
-            local cjson = require "cjson"
+            local ljson = require "ljson"
 
             local form, err = upload:new(5)
             if not form then
@@ -422,7 +422,7 @@ read: ["eof"]
                     return
                 end
 
-                ngx.say("read: ", cjson.encode({typ, res}))
+                ngx.say("read: ", ljson.encode({typ, res}))
 
                 if typ == "eof" then
                     break
@@ -430,7 +430,7 @@ read: ["eof"]
             end
 
             local typ, res, err = form:read()
-            ngx.say("read: ", cjson.encode({typ, res}))
+            ngx.say("read: ", ljson.encode({typ, res}))
         ';
     }
 --- more_headers
@@ -448,7 +448,7 @@ value\r
 }
 --- response_body
 read: ["header",["Content-Disposition","form-data; name=\"file1\"; filename=\"a.txt\"","Content-Disposition: form-data; name=\"file1\"; filename=\"a.txt\""]]
-read: ["header",["Content-Type","text\/plain","Content-Type: text\/plain"]]
+read: ["header",["Content-Type","text/plain","Content-Type: text/plain"]]
 read: ["body","Hello"]
 read: ["body",", wor"]
 read: ["body","ld"]
@@ -470,7 +470,7 @@ read: ["eof"]
     location /t {
         content_by_lua '
             local upload = require "resty.upload"
-            local cjson = require "cjson"
+            local ljson = require "ljson"
 
             local form, err = upload:new(5)
             if not form then
@@ -487,7 +487,7 @@ read: ["eof"]
                     return
                 end
 
-                ngx.say("read: ", cjson.encode({typ, res}))
+                ngx.say("read: ", ljson.encode({typ, res}))
 
                 if typ == "eof" then
                     break
@@ -495,7 +495,7 @@ read: ["eof"]
             end
 
             local typ, res, err = form:read()
-            ngx.say("read: ", cjson.encode({typ, res}))
+            ngx.say("read: ", ljson.encode({typ, res}))
         ';
     }
 --- more_headers
@@ -513,7 +513,7 @@ value\r
 }
 --- response_body
 read: ["header",["Content-Disposition","form-data; name=\"file1\"; filename=\"a.txt\"","Content-Disposition: form-data; name=\"file1\"; filename=\"a.txt\""]]
-read: ["header",["Content-Type","text\/plain","Content-Type: text\/plain"]]
+read: ["header",["Content-Type","text/plain","Content-Type: text/plain"]]
 read: ["body","Hello"]
 read: ["body",", wor"]
 read: ["body","ld"]
@@ -535,7 +535,7 @@ read: ["eof"]
     location /t {
         content_by_lua '
             local upload = require "resty.upload"
-            local cjson = require "cjson"
+            local ljson = require "ljson"
 
             local form = upload:new(5)
 
@@ -548,7 +548,7 @@ read: ["eof"]
                     return
                 end
 
-                ngx.say("read: ", cjson.encode({typ, res}))
+                ngx.say("read: ", ljson.encode({typ, res}))
 
                 if typ == "eof" then
                     break
@@ -556,7 +556,7 @@ read: ["eof"]
             end
 
             local typ, res, err = form:read()
-            ngx.say("read: ", cjson.encode({typ, res}))
+            ngx.say("read: ", ljson.encode({typ, res}))
         ';
     }
 --- more_headers
@@ -576,7 +576,7 @@ value\r
 }
 --- response_body
 read: ["header",["Content-Disposition","form-data; name=\"file1\"; filename=\"a.txt\"","Content-Disposition: form-data; name=\"file1\"; filename=\"a.txt\""]]
-read: ["header",["Content-Type","text\/plain","Content-Type: text\/plain"]]
+read: ["header",["Content-Type","text/plain","Content-Type: text/plain"]]
 read: ["body","Hello"]
 read: ["body",", wor"]
 read: ["body","ld"]
@@ -598,7 +598,7 @@ read: ["eof"]
     location /t {
         content_by_lua '
             local upload = require "resty.upload"
-            local cjson = require "cjson"
+            local ljson = require "ljson"
 
             local form = upload:new(5, 1024) -- max_line_size = 1024
 
@@ -611,7 +611,7 @@ read: ["eof"]
                     return
                 end
 
-                ngx.say("read: ", cjson.encode({typ, res}))
+                ngx.say("read: ", ljson.encode({typ, res}))
 
                 if typ == "eof" then
                     break
@@ -619,7 +619,7 @@ read: ["eof"]
             end
 
             local typ, res, err = form:read()
-            ngx.say("read: ", cjson.encode({typ, res}))
+            ngx.say("read: ", ljson.encode({typ, res}))
         ';
     }
 --- more_headers
@@ -636,7 +636,7 @@ value\r
 }
 --- response_body
 read: ["header",["Content-Disposition","form-data; name=\"file1\"; filename=\"a.txt\"","Content-Disposition: form-data; name=\"file1\"; filename=\"a.txt\""]]
-read: ["header",["Content-Type","text\/plain","Content-Type: text\/plain"]]
+read: ["header",["Content-Type","text/plain","Content-Type: text/plain"]]
 read: ["header","Hello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, worldHello, world"]
 read: ["header","-----------------------------820127721219505131303151179"]
 read: ["header",["Content-Disposition","form-data; name=\"test\"","Content-Disposition: form-data; name=\"test\""]]
