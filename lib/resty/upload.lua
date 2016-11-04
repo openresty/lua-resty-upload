@@ -10,7 +10,7 @@ local ngx_var = ngx.var
 -- local print = print
 
 
-local _M = { _VERSION = '0.09' }
+local _M = { _VERSION = '0.10' }
 
 
 local CHUNK_SIZE = 4096
