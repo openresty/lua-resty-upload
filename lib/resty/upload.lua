@@ -79,7 +79,9 @@ function _M.new(self, chunk_size, max_line_size)
         read2boundary = read2boundary,
         read_line = read_line,
         boundary = boundary,
-        state = STATE_BEGIN
+        state = STATE_BEGIN,
+        buf_type = nil,
+        buf_res = nil,
     }, mt)
 end
 
@@ -208,8 +210,33 @@ local function eof()
 end
 
 
+function _M.peek(self)
+    -- local size = self.size
+
+    if self.buf_type ~= nil then
+        return self.buf_type, self.buf_res, nil
+    end
+
+    local typ, res, err = self:read()
+    if not typ then
+        return nil, nil, err
+    end
+
+    self.buf_type, self.buf_res = typ, res
+
+    return typ, res, nil
+end
+
+
 function _M.read(self)
     -- local size = self.size
+
+    if self.buf_type then
+        local typ, res = self.buf_type, self.buf_res
+        self.buf_type, self.buf_res = nil, nil
+
+        return typ, res, nil
+    end
 
     local handler = state_handlers[self.state]
     if handler then
