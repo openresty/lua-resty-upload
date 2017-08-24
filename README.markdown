@@ -41,7 +41,7 @@ Synopsis
 ========
 
 ```lua
-    lua_package_path "/path/to/lua-resty-redis/lib/?.lua;;";
+    lua_package_path "/path/to/lua-resty-upload/lib/?.lua;;";
 
     server {
         location /test {
