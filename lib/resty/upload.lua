@@ -1,5 +1,6 @@
 -- Copyright (C) Yichun Zhang (agentzh)
-
+-- Extend to support the R-proxy mode
+-- Modified by whuben
 
 -- local sub = string.sub
 local req_socket = ngx.req.socket
@@ -48,7 +49,6 @@ end
 
 function _M.new(self, chunk_size, max_line_size)
     local boundary = get_boundary()
-
     -- print("boundary: ", boundary)
 
     if not boundary then
@@ -61,17 +61,17 @@ function _M.new(self, chunk_size, max_line_size)
     if not sock then
         return nil, err
     end
-
+    ngx.req.init_body(chunk_size)  --added
     local read2boundary, err = sock:receiveuntil("--" .. boundary)
     if not read2boundary then
+        ngx.req.finish_body() --added
         return nil, err
     end
-
     local read_line, err = sock:receiveuntil("\r\n")
     if not read_line then
+        ngx.req.finish_body() --added
         return nil, err
     end
-
     return setmetatable({
         sock = sock,
         size = chunk_size or CHUNK_SIZE,
@@ -96,21 +96,22 @@ end
 
 local function discard_line(self)
     local read_line = self.read_line
-
     local line, err = read_line(self.line_size)
     if not line then
+        ngx.req.finish_body()
         return nil, err
     end
-
+    ngx.req.append_body(line)
+    ngx.req.append_body("\r\n")
     local dummy, err = read_line(1)
     if dummy then
+        ngx.req.finish_body()
         return nil, "line too long: " .. line .. dummy .. "..."
     end
-
     if err then
+        ngx.req.finish_body()
         return nil, err
     end
-
     return 1
 end
 
@@ -122,6 +123,7 @@ local function discard_rest(self)
     while true do
         local dummy, err = sock:receive(size)
         if err and err ~= 'closed' then
+            ngx.req.finish_body()
             return nil, err
         end
 
@@ -137,14 +139,14 @@ local function read_body_part(self)
 
     local chunk, err = read2boundary(self.size)
     if err then
+        ngx.req.finish_body()
         return nil, nil, err
     end
-
     if not chunk then
         local sock = self.sock
-
         local data = sock:receive(2)
         if data == "--" then
+            ngx.req.append_body("--"..self.boundary.."--")
             local ok, err = discard_rest(self)
             if not ok then
                 return nil, nil, err
@@ -160,11 +162,12 @@ local function read_body_part(self)
                 return nil, nil, err
             end
         end
-
+        ngx.req.append_body("--"..self.boundary.."\r\n")
         self.state = STATE_READING_HEADER
         return "part_end"
     end
-
+    ngx.req.append_body(chunk)
+    
     return "body", chunk
 end
 
@@ -174,18 +177,21 @@ local function read_header(self)
 
     local line, err = read_line(self.line_size)
     if err then
+        ngx.req.finish_body()
         return nil, nil, err
     end
-
+    ngx.req.append_body(line)
+    ngx.req.append_body("\r\n")
     local dummy, err = read_line(1)
     if dummy then
+        ngx.req.finish_body()
         return nil, nil, "line too long: " .. line .. dummy .. "..."
     end
 
     if err then
+        ngx.req.finish_body()
         return nil, nil, err
     end
-
     -- print("read line: ", line)
 
     if line == "" then
@@ -204,6 +210,7 @@ end
 
 
 local function eof()
+    ngx.req.finish_body()
     return "eof", nil
 end
 
@@ -228,11 +235,13 @@ local function read_preamble(self)
 
     local size = self.size
     local read2boundary = self.read2boundary
-
     while true do
         local preamble = read2boundary(size)
         if not preamble then
+            ngx.req.append_body("--"..self.boundary)
             break
+        else
+            ngx.req.append_body(preamble)
         end
 
         -- discard the preamble data chunk
@@ -244,7 +253,7 @@ local function read_preamble(self)
         return nil, nil, err
     end
 
-    local read2boundary, err = sock:receiveuntil("\r\n--" .. self.boundary)
+    local read2boundary, err = sock:receiveuntil("--" .. self.boundary)
     if not read2boundary then
         return nil, nil, err
     end
