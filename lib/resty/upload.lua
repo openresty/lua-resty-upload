@@ -253,7 +253,7 @@ local function read_preamble(self)
         return nil, nil, err
     end
 
-    local read2boundary, err = sock:receiveuntil("--" .. self.boundary)
+    local read2boundary, err = sock:receiveuntil("\r\n--" .. self.boundary)
     if not read2boundary then
         return nil, nil, err
     end
