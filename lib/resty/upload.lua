@@ -73,7 +73,7 @@ function _M.new(self, chunk_size, max_line_size, restore_body_buffer)
     if not read2boundary then
 
         if restore_body_buffer then
-            ngx_finish_body()
+            ngx_finish_body(self)
         end
 
         return nil, err
@@ -83,7 +83,7 @@ function _M.new(self, chunk_size, max_line_size, restore_body_buffer)
     if not read_line then
 
         if restore_body_buffer then
-            ngx_finish_body()
+            ngx_finish_body(self)
         end
 
         return nil, err
@@ -181,7 +181,7 @@ local function read_body_part(self)
 
         local data = sock:receive(2)
         if data == "--" then
-            append_body(self, "--" .. self.boundary .. "--")
+            append_body(self, "\r\n--" .. self.boundary .. "--\r\n")
 
             local ok, err = discard_rest(self)
             if not ok then
@@ -199,7 +199,7 @@ local function read_body_part(self)
             end
         end
 
-        append_body(self, "--" .. self.boundary .. "\r\n")
+        append_body(self, "\r\n--" .. self.boundary .. "\r\n")
         
         self.state = STATE_READING_HEADER
         return "part_end"
@@ -250,7 +250,7 @@ local function read_header(self)
 end
 
 
-local function eof()
+local function eof(self)
     finish_body(self)
     return "eof", nil
 end
@@ -280,10 +280,10 @@ local function read_preamble(self)
     while true do
         local preamble = read2boundary(size)
         if not preamble then
-            append_body("--" .. self.boundary)
+            append_body(self, "--" .. self.boundary)
             break
         else
-            append_body(preamble)
+            append_body(self, preamble)
         end
 
         -- discard the preamble data chunk
