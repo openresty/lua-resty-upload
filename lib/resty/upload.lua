@@ -93,7 +93,7 @@ function _M.new(self, chunk_size, max_line_size, restore_body_buffer)
         sock = sock,
         size = chunk_size or CHUNK_SIZE,
         line_size = max_line_size or MAX_LINE_SIZE,
-        resore_body = restore_body_buffer or false,
+        restore_body = restore_body_buffer or false,
         read2boundary = read2boundary,
         read_line = read_line,
         boundary = boundary,
@@ -111,14 +111,16 @@ function _M.set_timeout(self, timeout)
     return sock:settimeout(timeout)
 end
 
-local function append_body(self, data_chunk)
-    if self.resore_body then
-        ngx_append_body(data_chunk)
+local function append_body(self, ...)
+    if self.restore_body then
+        for _, v in ipairs{...} do
+            ngx_append_body(v)
+        end
     end
 end
 
 local function finish_body(self)
-    if self.resore_body then
+    if self.restore_body then
         ngx_finish_body()
     end
 end
@@ -128,11 +130,11 @@ local function discard_line(self)
 
     local line, err = read_line(self.line_size)
     if not line then
-        finish_body(self);
+        finish_body(self)
         return nil, err
     end
 
-    append_body(self, line .. "\r\n")
+    append_body(self, line, "\r\n")
 
     local dummy, err = read_line(1)
     if dummy then
@@ -181,7 +183,7 @@ local function read_body_part(self)
 
         local data = sock:receive(2)
         if data == "--" then
-            append_body(self, "\r\n--" .. self.boundary .. "--\r\n")
+            append_body(self, "\r\n--", self.boundary, "--\r\n")
 
             local ok, err = discard_rest(self)
             if not ok then
@@ -199,7 +201,7 @@ local function read_body_part(self)
             end
         end
 
-        append_body(self, "\r\n--" .. self.boundary .. "\r\n")
+        append_body(self, "\r\n--", self.boundary, "\r\n")
         
         self.state = STATE_READING_HEADER
         return "part_end"
@@ -220,7 +222,7 @@ local function read_header(self)
         return nil, nil, err
     end
 
-    append_body(self, line .. "\r\n")
+    append_body(self, line, "\r\n")
 
     local dummy, err = read_line(1)
     if dummy then
@@ -280,7 +282,7 @@ local function read_preamble(self)
     while true do
         local preamble = read2boundary(size)
         if not preamble then
-            append_body(self, "--" .. self.boundary)
+            append_body(self, "--", self.boundary)
             break
         else
             append_body(self, preamble)
