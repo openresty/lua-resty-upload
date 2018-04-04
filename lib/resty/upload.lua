@@ -73,7 +73,7 @@ function _M.new(self, chunk_size, max_line_size, restore_body_buffer)
     if not read2boundary then
 
         if restore_body_buffer then
-            ngx_finish_body(self)
+            ngx_finish_body()
         end
 
         return nil, err
@@ -83,7 +83,7 @@ function _M.new(self, chunk_size, max_line_size, restore_body_buffer)
     if not read_line then
 
         if restore_body_buffer then
-            ngx_finish_body(self)
+            ngx_finish_body()
         end
 
         return nil, err
@@ -93,7 +93,8 @@ function _M.new(self, chunk_size, max_line_size, restore_body_buffer)
         sock = sock,
         size = chunk_size or CHUNK_SIZE,
         line_size = max_line_size or MAX_LINE_SIZE,
-        restore_body = restore_body_buffer or false,
+        restore_body_buffer = restore_body_buffer or false,
+        body_buffer = {""},
         read2boundary = read2boundary,
         read_line = read_line,
         boundary = boundary,
@@ -111,18 +112,19 @@ function _M.set_timeout(self, timeout)
     return sock:settimeout(timeout)
 end
 
-local function append_body(self, ...)
-    if self.restore_body then
-        for _, v in ipairs{...} do
-            ngx_append_body(v)
-        end
+local function append_body_buffer(self, line)
+    table.insert(self.body_buffer, line)    -- push 's' into the the buffer
+    for i=table.getn(self.body_buffer)-1, 1, -1 do
+      if string.len(self.body_buffer[i]) > string.len(self.body_buffer[i+1]) then
+        break
+      end
+      self.body_buffer[i] = self.body_buffer[i] .. table.remove(self.body_buffer)
     end
 end
 
-local function finish_body(self)
-    if self.restore_body then
-        ngx_finish_body()
-    end
+local function restore_body(self)
+    ngx_append_body(table.concat(self.body_buffer, ""))
+    ngx_finish_body()
 end
 
 local function discard_line(self)
@@ -130,20 +132,28 @@ local function discard_line(self)
 
     local line, err = read_line(self.line_size)
     if not line then
-        finish_body(self)
+        if self.restore_body_buffer then
+            restore_body(self)
+        end
         return nil, err
     end
 
-    append_body(self, line, "\r\n")
+    if self.restore_body_buffer then
+        append_body_buffer(self, line .. "\r\n")
+    end
 
     local dummy, err = read_line(1)
     if dummy then
-        finish_body(self)
+        if self.restore_body_buffer then
+            restore_body(self)
+        end
         return nil, "line too long: " .. line .. dummy .. "..."
     end
 
     if err then
-        finish_body(self)
+        if self.restore_body_buffer then
+            restore_body(self)
+        end
         return nil, err
     end
 
@@ -158,7 +168,9 @@ local function discard_rest(self)
     while true do
         local dummy, err = sock:receive(size)
         if err and err ~= 'closed' then
-            finish_body(self)
+            if self.restore_body_buffer then
+                restore_body(self)
+            end
             return nil, err
         end
 
@@ -174,7 +186,9 @@ local function read_body_part(self)
 
     local chunk, err = read2boundary(self.size)
     if err then
-        finish_body(self)
+        if self.restore_body_buffer then
+            restore_body(self)
+        end
         return nil, nil, err
     end
 
@@ -183,7 +197,9 @@ local function read_body_part(self)
 
         local data = sock:receive(2)
         if data == "--" then
-            append_body(self, "\r\n--", self.boundary, "--\r\n")
+            if self.restore_body_buffer then
+                append_body_buffer(self, "\r\n--" .. self.boundary .. "--\r\n")
+            end
 
             local ok, err = discard_rest(self)
             if not ok then
@@ -201,13 +217,17 @@ local function read_body_part(self)
             end
         end
 
-        append_body(self, "\r\n--", self.boundary, "\r\n")
-        
+        if self.restore_body_buffer then
+            append_body_buffer(self, "\r\n--" .. self.boundary .. "\r\n")
+        end
+
         self.state = STATE_READING_HEADER
         return "part_end"
     end
 
-    append_body(self, chunk)
+    if self.restore_body_buffer then
+        append_body_buffer(self, chunk)
+    end
 
     return "body", chunk
 end
@@ -218,20 +238,28 @@ local function read_header(self)
 
     local line, err = read_line(self.line_size)
     if err then
-        finish_body(self)
+        if self.restore_body_buffer then
+            restore_body(self)
+        end
         return nil, nil, err
     end
 
-    append_body(self, line, "\r\n")
+    if self.restore_body_buffer then
+        append_body_buffer(self, line .. "\r\n")
+    end
 
     local dummy, err = read_line(1)
     if dummy then
-        finish_body(self)
+        if self.restore_body_buffer then
+            restore_body(self)
+        end
         return nil, nil, "line too long: " .. line .. dummy .. "..."
     end
 
     if err then
-        finish_body(self)
+        if self.restore_body_buffer then
+            restore_body(self)
+        end
         return nil, nil, err
     end
 
@@ -253,7 +281,9 @@ end
 
 
 local function eof(self)
-    finish_body(self)
+    if self.restore_body_buffer then
+        restore_body(self)
+    end
     return "eof", nil
 end
 
@@ -282,10 +312,14 @@ local function read_preamble(self)
     while true do
         local preamble = read2boundary(size)
         if not preamble then
-            append_body(self, "--", self.boundary)
+            if self.restore_body_buffer then
+                append_body_buffer(self, "--" .. self.boundary)
+            end
             break
         else
-            append_body(self, preamble)
+            if self.restore_body_buffer then
+                append_body_buffer(self, preamble)
+            end
         end
 
         -- discard the preamble data chunk
