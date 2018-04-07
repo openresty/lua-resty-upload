@@ -112,47 +112,32 @@ function _M.set_timeout(self, timeout)
     return sock:settimeout(timeout)
 end
 
-local function append_body_buffer(self, line)
-    table.insert(self.body_buffer, line)    -- push 's' into the the buffer
-    for i=table.getn(self.body_buffer)-1, 1, -1 do
-      if string.len(self.body_buffer[i]) > string.len(self.body_buffer[i+1]) then
-        break
-      end
-      self.body_buffer[i] = self.body_buffer[i] .. table.remove(self.body_buffer)
-    end
-end
-
-local function restore_body(self)
-    ngx_append_body(table.concat(self.body_buffer, ""))
-    ngx_finish_body()
-end
-
 local function discard_line(self)
     local read_line = self.read_line
 
     local line, err = read_line(self.line_size)
     if not line then
         if self.restore_body_buffer then
-            restore_body(self)
+            ngx_finish_body()
         end
         return nil, err
     end
 
     if self.restore_body_buffer then
-        append_body_buffer(self, line .. "\r\n")
+        ngx_append_body(line .. "\r\n")
     end
 
     local dummy, err = read_line(1)
     if dummy then
         if self.restore_body_buffer then
-            restore_body(self)
+            ngx_finish_body()
         end
         return nil, "line too long: " .. line .. dummy .. "..."
     end
 
     if err then
         if self.restore_body_buffer then
-            restore_body(self)
+            ngx_finish_body()
         end
         return nil, err
     end
@@ -169,7 +154,7 @@ local function discard_rest(self)
         local dummy, err = sock:receive(size)
         if err and err ~= 'closed' then
             if self.restore_body_buffer then
-                restore_body(self)
+                ngx_finish_body()
             end
             return nil, err
         end
@@ -187,7 +172,7 @@ local function read_body_part(self)
     local chunk, err = read2boundary(self.size)
     if err then
         if self.restore_body_buffer then
-            restore_body(self)
+            ngx_finish_body()
         end
         return nil, nil, err
     end
@@ -198,7 +183,7 @@ local function read_body_part(self)
         local data = sock:receive(2)
         if data == "--" then
             if self.restore_body_buffer then
-                append_body_buffer(self, "\r\n--" .. self.boundary .. "--\r\n")
+                ngx_append_body("\r\n--" .. self.boundary .. "--\r\n")
             end
 
             local ok, err = discard_rest(self)
@@ -218,7 +203,7 @@ local function read_body_part(self)
         end
 
         if self.restore_body_buffer then
-            append_body_buffer(self, "\r\n--" .. self.boundary .. "\r\n")
+            ngx_append_body("\r\n--" .. self.boundary .. "\r\n")
         end
 
         self.state = STATE_READING_HEADER
@@ -226,7 +211,7 @@ local function read_body_part(self)
     end
 
     if self.restore_body_buffer then
-        append_body_buffer(self, chunk)
+        ngx_append_body(chunk)
     end
 
     return "body", chunk
@@ -239,26 +224,26 @@ local function read_header(self)
     local line, err = read_line(self.line_size)
     if err then
         if self.restore_body_buffer then
-            restore_body(self)
+            ngx_finish_body()
         end
         return nil, nil, err
     end
 
     if self.restore_body_buffer then
-        append_body_buffer(self, line .. "\r\n")
+        ngx_append_body(line .. "\r\n")
     end
 
     local dummy, err = read_line(1)
     if dummy then
         if self.restore_body_buffer then
-            restore_body(self)
+            ngx_finish_body()
         end
         return nil, nil, "line too long: " .. line .. dummy .. "..."
     end
 
     if err then
         if self.restore_body_buffer then
-            restore_body(self)
+            ngx_finish_body()
         end
         return nil, nil, err
     end
@@ -282,7 +267,7 @@ end
 
 local function eof(self)
     if self.restore_body_buffer then
-        restore_body(self)
+        ngx_finish_body()
     end
     return "eof", nil
 end
@@ -313,12 +298,12 @@ local function read_preamble(self)
         local preamble = read2boundary(size)
         if not preamble then
             if self.restore_body_buffer then
-                append_body_buffer(self, "--" .. self.boundary)
+                ngx_append_body("--" .. self.boundary)
             end
             break
         else
             if self.restore_body_buffer then
-                append_body_buffer(self, preamble)
+                ngx_append_body(preamble)
             end
         end
 
