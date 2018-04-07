@@ -94,7 +94,6 @@ function _M.new(self, chunk_size, max_line_size, restore_body_buffer)
         size = chunk_size or CHUNK_SIZE,
         line_size = max_line_size or MAX_LINE_SIZE,
         restore_body_buffer = restore_body_buffer or false,
-        body_buffer = {""},
         read2boundary = read2boundary,
         read_line = read_line,
         boundary = boundary,
