@@ -71,7 +71,6 @@ function _M.new(self, chunk_size, max_line_size, restore_body_buffer)
 
     local read2boundary, err = sock:receiveuntil("--" .. boundary)
     if not read2boundary then
-
         if restore_body_buffer then
             ngx_finish_body()
         end
@@ -93,7 +92,7 @@ function _M.new(self, chunk_size, max_line_size, restore_body_buffer)
         sock = sock,
         size = chunk_size or CHUNK_SIZE,
         line_size = max_line_size or MAX_LINE_SIZE,
-        restore_body_buffer = restore_body_buffer or false,
+        restore_body_buffer = restore_body_buffer,
         read2boundary = read2boundary,
         read_line = read_line,
         boundary = boundary,
@@ -111,6 +110,7 @@ function _M.set_timeout(self, timeout)
     return sock:settimeout(timeout)
 end
 
+
 local function discard_line(self)
     local read_line = self.read_line
 
@@ -119,6 +119,7 @@ local function discard_line(self)
         if self.restore_body_buffer then
             ngx_finish_body()
         end
+
         return nil, err
     end
 
@@ -131,6 +132,7 @@ local function discard_line(self)
         if self.restore_body_buffer then
             ngx_finish_body()
         end
+
         return nil, "line too long: " .. line .. dummy .. "..."
     end
 
@@ -155,6 +157,7 @@ local function discard_rest(self)
             if self.restore_body_buffer then
                 ngx_finish_body()
             end
+
             return nil, err
         end
 
@@ -173,6 +176,7 @@ local function read_body_part(self)
         if self.restore_body_buffer then
             ngx_finish_body()
         end
+
         return nil, nil, err
     end
 
@@ -225,6 +229,7 @@ local function read_header(self)
         if self.restore_body_buffer then
             ngx_finish_body()
         end
+
         return nil, nil, err
     end
 
@@ -237,6 +242,7 @@ local function read_header(self)
         if self.restore_body_buffer then
             ngx_finish_body()
         end
+
         return nil, nil, "line too long: " .. line .. dummy .. "..."
     end
 
@@ -244,6 +250,7 @@ local function read_header(self)
         if self.restore_body_buffer then
             ngx_finish_body()
         end
+
         return nil, nil, err
     end
 
@@ -268,6 +275,7 @@ local function eof(self)
     if self.restore_body_buffer then
         ngx_finish_body()
     end
+
     return "eof", nil
 end
 
@@ -299,9 +307,10 @@ local function read_preamble(self)
             if self.restore_body_buffer then
                 ngx_append_body("--" .. self.boundary)
             end
+            
             break
-        else
-            if self.restore_body_buffer then
+
+        elseif self.restore_body_buffer then
                 ngx_append_body(preamble)
             end
         end
