@@ -310,7 +310,7 @@ local function read_preamble(self)
             
             break
 
-        elseif self.restore_body_buffer then
+        else if self.restore_body_buffer then
                 ngx_append_body(preamble)
             end
         end
