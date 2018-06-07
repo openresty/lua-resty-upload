@@ -103,7 +103,7 @@ local function discard_line(self)
     if not line then
         return nil, err
     end
-    ngx_req.append_body(line).  --append the line data into the buffer
+    ngx_req.append_body(line)  --append the line data into the buffer
     ngx_req.append_body("\r\n") --append the line pattern into the buffer
     local dummy, err = read_line(1)
     if dummy then
@@ -156,7 +156,7 @@ local function read_body_part(self)
                 ngx_req.finish_body() --complete the buffer appendding
                 return nil, nil, err
             end
-
+            ngx_req.finish_body() --complete the buffer appendding
             self.state = STATE_EOF
             return "part_end"
         end
@@ -187,8 +187,6 @@ local function read_header(self)
         ngx_req.finish_body() --complete the buffer appendding
         return nil, nil, err
     end
-    ngx_req.append_body(line).  --append the line data into the buffer
-    ngx_req.append_body("\r\n") --append the line pattern into the buffer
     local dummy, err = read_line(1)
     if dummy then
         ngx_req.finish_body() --complete the buffer appendding
@@ -203,11 +201,13 @@ local function read_header(self)
     -- print("read line: ", line)
 
     if line == "" then
+        ngx_req.append_body("\r\n") --append the line pattern into the buffer
         -- after the last header
         self.state = STATE_READING_BODY
         return read_body_part(self)
     end
-
+    ngx_req.append_body(line)  --append the line data into the buffer
+    ngx_req.append_body("\r\n") --append the line pattern into the buffer
     local key, value = match(line, "([^: \t]+)%s*:%s*(.+)")
     if not key then
         return 'header', line
@@ -218,7 +218,6 @@ end
 
 
 local function eof()
-    ngx_req.finish_body() --complete the buffer appendding
     return "eof", nil
 end
 
