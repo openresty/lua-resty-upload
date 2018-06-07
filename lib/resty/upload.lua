@@ -1,6 +1,5 @@
 -- Copyright (C) Yichun Zhang (agentzh)
--- Extend to support the R-proxy mode
--- Modified by whuben
+-- Modified by whuben for supportting the Reverse-Proxy mode
 
 -- local sub = string.sub
 local req_socket = ngx.req.socket
@@ -8,6 +7,7 @@ local match = string.match
 local setmetatable = setmetatable
 local type = type
 local ngx_var = ngx.var
+local ngx_req = ngx.req
 -- local print = print
 
 
@@ -49,6 +49,7 @@ end
 
 function _M.new(self, chunk_size, max_line_size)
     local boundary = get_boundary()
+
     -- print("boundary: ", boundary)
 
     if not boundary then
@@ -61,17 +62,18 @@ function _M.new(self, chunk_size, max_line_size)
     if not sock then
         return nil, err
     end
-    ngx.req.init_body(chunk_size)  --added
+    ngx_req.init_body() --create a new blank request body  and init the buffer for upload data 
     local read2boundary, err = sock:receiveuntil("--" .. boundary)
     if not read2boundary then
-        ngx.req.finish_body() --added
+        ngx_req.finish_body() --complete the buffer appendding
         return nil, err
     end
     local read_line, err = sock:receiveuntil("\r\n")
     if not read_line then
-        ngx.req.finish_body() --added
+        ngx_req.finish_body() --complete the buffer appendding
         return nil, err
     end
+
     return setmetatable({
         sock = sock,
         size = chunk_size or CHUNK_SIZE,
@@ -96,22 +98,22 @@ end
 
 local function discard_line(self)
     local read_line = self.read_line
+
     local line, err = read_line(self.line_size)
     if not line then
-        ngx.req.finish_body()
         return nil, err
     end
-    ngx.req.append_body(line)
-    ngx.req.append_body("\r\n")
+    ngx_req.append_body(line).  --append the line data into the buffer
+    ngx_req.append_body("\r\n") --append the line pattern into the buffer
     local dummy, err = read_line(1)
     if dummy then
-        ngx.req.finish_body()
         return nil, "line too long: " .. line .. dummy .. "..."
     end
+
     if err then
-        ngx.req.finish_body()
         return nil, err
     end
+
     return 1
 end
 
@@ -123,13 +125,13 @@ local function discard_rest(self)
     while true do
         local dummy, err = sock:receive(size)
         if err and err ~= 'closed' then
-            ngx.req.finish_body()
             return nil, err
         end
 
         if not dummy then
             return 1
         end
+        ngx_req.append_body(dummy) --just append the dummy data into the buffer
     end
 end
 
@@ -139,16 +141,19 @@ local function read_body_part(self)
 
     local chunk, err = read2boundary(self.size)
     if err then
-        ngx.req.finish_body()
+        ngx_req.finish_body() --complete the buffer appendding
         return nil, nil, err
     end
+
     if not chunk then
         local sock = self.sock
+
         local data = sock:receive(2)
         if data == "--" then
-            ngx.req.append_body("--"..self.boundary.."--")
+            ngx_req.append_body("\r\n--"..self.boundary.."--") --(end of the body)append the last pattern string into the buffer
             local ok, err = discard_rest(self)
             if not ok then
+                ngx_req.finish_body() --complete the buffer appendding
                 return nil, nil, err
             end
 
@@ -157,17 +162,19 @@ local function read_body_part(self)
         end
 
         if data ~= "\r\n" then
+            ngx_req.append_body("\r\n--"..self.boundary..data) --just append the pattern string into the buffer and then append the discard_line data
             local ok, err = discard_line(self)
             if not ok then
+                ngx_req.finish_body() --complete the buffer appendding
                 return nil, nil, err
             end
+        else
+            ngx_req.append_body("\r\n--"..self.boundary.."\r\n") --append the end pattern string of one file into the buffer
         end
-        ngx.req.append_body("--"..self.boundary.."\r\n")
         self.state = STATE_READING_HEADER
         return "part_end"
     end
-    ngx.req.append_body(chunk)
-    
+    ngx_req.append_body(chunk) --append the body data into the buffer
     return "body", chunk
 end
 
@@ -177,21 +184,22 @@ local function read_header(self)
 
     local line, err = read_line(self.line_size)
     if err then
-        ngx.req.finish_body()
+        ngx_req.finish_body() --complete the buffer appendding
         return nil, nil, err
     end
-    ngx.req.append_body(line)
-    ngx.req.append_body("\r\n")
+    ngx_req.append_body(line).  --append the line data into the buffer
+    ngx_req.append_body("\r\n") --append the line pattern into the buffer
     local dummy, err = read_line(1)
     if dummy then
-        ngx.req.finish_body()
+        ngx_req.finish_body() --complete the buffer appendding
         return nil, nil, "line too long: " .. line .. dummy .. "..."
     end
 
     if err then
-        ngx.req.finish_body()
+        ngx_req.finish_body() --complete the buffer appendding
         return nil, nil, err
     end
+
     -- print("read line: ", line)
 
     if line == "" then
@@ -210,7 +218,7 @@ end
 
 
 local function eof()
-    ngx.req.finish_body()
+    ngx_req.finish_body() --complete the buffer appendding
     return "eof", nil
 end
 
@@ -235,26 +243,27 @@ local function read_preamble(self)
 
     local size = self.size
     local read2boundary = self.read2boundary
+
     while true do
         local preamble = read2boundary(size)
         if not preamble then
-            ngx.req.append_body("--"..self.boundary)
+            ngx_req.append_body("--"..self.boundary) --append the pattern string into the buffer
             break
-        else
-            ngx.req.append_body(preamble)
         end
-
+        ngx_req.append_body(preamble) --append the data into buffer
         -- discard the preamble data chunk
         -- print("read preamble: ", preamble)
     end
 
     local ok, err = discard_line(self)
     if not ok then
+        ngx_req.finish_body() --complete the buffer appendding
         return nil, nil, err
     end
 
     local read2boundary, err = sock:receiveuntil("\r\n--" .. self.boundary)
     if not read2boundary then
+        ngx_req.finish_body() --complete the buffer appendding
         return nil, nil, err
     end
 
