@@ -27,8 +27,10 @@ local mt = { __index = _M }
 local state_handlers
 
 
-local function get_boundary()
-    local header = ngx_var.content_type
+local function get_boundary(header)
+    if not header then
+        header = ngx_var.content_type
+    end
     if not header then
         return nil
     end
@@ -46,8 +48,11 @@ local function get_boundary()
 end
 
 
-function _M.new(self, chunk_size, max_line_size)
-    local boundary = get_boundary()
+function _M.new(self, chunk_size, max_line_size, sock, boundary_or_header)
+    local boundary = get_boundary(boundary_or_header)
+    if not boundary and boundary_or_header then
+        boundary = boundary_or_header
+    end
 
     -- print("boundary: ", boundary)
 
@@ -57,9 +62,12 @@ function _M.new(self, chunk_size, max_line_size)
 
     -- print('boundary: "', boundary, '"')
 
-    local sock, err = req_socket()
     if not sock then
-        return nil, err
+        local err
+        sock, err = req_socket()
+        if not sock then
+            return nil, err
+        end
     end
 
     local read2boundary, err = sock:receiveuntil("--" .. boundary)

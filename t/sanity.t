@@ -5,7 +5,7 @@ use Cwd qw(cwd);
 
 repeat_each(2);
 
-plan tests => repeat_each() * (3 * blocks());
+plan tests => repeat_each() * (3 * blocks() + 3);
 
 my $pwd = cwd();
 
@@ -648,3 +648,173 @@ read: ["eof"]
 --- no_error_log
 [error]
 
+
+
+=== TEST 11: socket argument
+--- http_config eval: $::HttpConfig
+--- config
+    location /t {
+        content_by_lua_block {
+            local upload = require "resty.upload"
+            local ljson = require "ljson"
+
+            local sock = ngx.req.socket()
+            local proxy = setmetatable({}, {
+                __index = function(_, key)
+                    local value = sock[key]
+                    if type(value) == 'function' then
+                        return function(_, ...)
+                            ngx.log(ngx.DEBUG, 'proxy call: ', key)
+                            return value(sock, ...)
+                        end
+                    end
+                    return value
+                end
+            })
+
+            local form = upload:new(5, nil, proxy)
+
+            form:set_timeout(1000) -- 1 sec
+
+            while true do
+                local typ, res, err = form:read()
+                if not typ then
+                    ngx.say("failed to read: ", err)
+                    return
+                end
+
+                ngx.say("read: ", ljson.encode({typ, res}))
+
+                if typ == "eof" then
+                    break
+                end
+            end
+        }
+    }
+--- more_headers
+Content-Type: multipart/form-data; boundary=---------------------------820127721219505131303151179
+--- request eval
+qq{POST /t
+-----------------------------820127721219505131303151179\r
+Content-Disposition: form-data; name="test"\r
+Content-Type: text/plain\r
+\r
+Hello, world\r
+-----------------------------820127721219505131303151179--\r
+}
+--- response_body
+read: ["header",["Content-Disposition","form-data; name=\"test\"","Content-Disposition: form-data; name=\"test\""]]
+read: ["header",["Content-Type","text/plain","Content-Type: text/plain"]]
+read: ["body","Hello"]
+read: ["body",", wor"]
+read: ["body","ld"]
+read: ["part_end"]
+read: ["eof"]
+--- no_error_log
+[error]
+--- error_log
+proxy call: receiveuntil
+proxy call: settimeout
+proxy call: receive
+
+
+
+=== TEST 12: boundary argument, unparsed Content-Type header value
+--- http_config eval: $::HttpConfig
+--- config
+    location /t {
+        content_by_lua_block {
+            local upload = require "resty.upload"
+            local ljson = require "ljson"
+
+            local form = upload:new(5, nil, nil, "multipart/form-data; boundary=---------------------------820127721219505131303151179")
+
+            form:set_timeout(1000) -- 1 sec
+
+            while true do
+                local typ, res, err = form:read()
+                if not typ then
+                    ngx.say("failed to read: ", err)
+                    return
+                end
+
+                ngx.say("read: ", ljson.encode({typ, res}))
+
+                if typ == "eof" then
+                    break
+                end
+            end
+        }
+    }
+--- more_headers
+Content-Type: multipart/form-data; boundary=should-be-ignored
+--- request eval
+qq{POST /t
+-----------------------------820127721219505131303151179\r
+Content-Disposition: form-data; name="test"\r
+Content-Type: text/plain\r
+\r
+Hello, world\r
+-----------------------------820127721219505131303151179--\r
+}
+--- response_body
+read: ["header",["Content-Disposition","form-data; name=\"test\"","Content-Disposition: form-data; name=\"test\""]]
+read: ["header",["Content-Type","text/plain","Content-Type: text/plain"]]
+read: ["body","Hello"]
+read: ["body",", wor"]
+read: ["body","ld"]
+read: ["part_end"]
+read: ["eof"]
+--- no_error_log
+[error]
+
+
+
+=== TEST 13: boundary argument, raw boundary value
+--- http_config eval: $::HttpConfig
+--- config
+    location /t {
+        content_by_lua_block {
+            local upload = require "resty.upload"
+            local ljson = require "ljson"
+
+            local form = upload:new(5, nil, nil, "---------------------------820127721219505131303151179")
+
+            form:set_timeout(1000) -- 1 sec
+
+            while true do
+                local typ, res, err = form:read()
+                if not typ then
+                    ngx.say("failed to read: ", err)
+                    return
+                end
+
+                ngx.say("read: ", ljson.encode({typ, res}))
+
+                if typ == "eof" then
+                    break
+                end
+            end
+        }
+    }
+--- more_headers
+Content-Type: multipart/form-data; boundary=should-be-ignored
+--- request eval
+qq{POST /t
+-----------------------------820127721219505131303151179\r
+Content-Disposition: form-data; name="test"\r
+Content-Type: text/plain\r
+\r
+Hello, world\r
+-----------------------------820127721219505131303151179--\r
+}
+--- response_body
+read: ["header",["Content-Disposition","form-data; name=\"test\"","Content-Disposition: form-data; name=\"test\""]]
+read: ["header",["Content-Type","text/plain","Content-Type: text/plain"]]
+read: ["body","Hello"]
+read: ["body",", wor"]
+read: ["body","ld"]
+read: ["part_end"]
+read: ["eof"]
+--- no_error_log
+[error]
