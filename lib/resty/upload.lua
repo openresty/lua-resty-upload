@@ -49,7 +49,7 @@ local function get_boundary()
 end
 
 
-function _M.new(self, chunk_size, max_line_size, restore_body_buffer)
+function _M.new(self, chunk_size, max_line_size, restore_body_buffer, lf_line_break)
     local boundary = get_boundary()
 
     -- print("boundary: ", boundary)
@@ -57,7 +57,6 @@ function _M.new(self, chunk_size, max_line_size, restore_body_buffer)
     if not boundary then
         return nil, "no boundary defined in Content-Type"
     end
-
     -- print('boundary: "', boundary, '"')
 
     local sock, err = req_socket()
@@ -69,7 +68,8 @@ function _M.new(self, chunk_size, max_line_size, restore_body_buffer)
         ngx_init_body(chunk_size)
     end
 
-    local read2boundary, err = sock:receiveuntil("--" .. boundary)
+    boundary = "--" .. boundary
+    local read2boundary, err = sock:receiveuntil(boundary)
     if not read2boundary then
         if restore_body_buffer then
             ngx_finish_body()
@@ -78,7 +78,16 @@ function _M.new(self, chunk_size, max_line_size, restore_body_buffer)
         return nil, err
     end
 
-    local read_line, err = sock:receiveuntil("\r\n")
+    -- note that it matters when restore_body_buffer
+    -- because we shuold not change body length
+    local line_break
+    if lf_line_break then
+        line_break = "\n"
+    else
+        line_break = "\r\n"
+    end
+
+    local read_line, err = sock:receiveuntil(line_break)
     if not read_line then
 
         if restore_body_buffer then
@@ -96,7 +105,8 @@ function _M.new(self, chunk_size, max_line_size, restore_body_buffer)
         read2boundary = read2boundary,
         read_line = read_line,
         boundary = boundary,
-        state = STATE_BEGIN
+        state = STATE_BEGIN,
+        line_break = line_break
     }, mt)
 end
 
@@ -124,7 +134,8 @@ local function discard_line(self)
     end
 
     if self.restore_body_buffer then
-        ngx_append_body(line .. "\r\n")
+        ngx_append_body(line)
+        ngx_append_body(self.line_break)
     end
 
     local dummy, err = read_line(1)
@@ -161,6 +172,10 @@ local function discard_rest(self)
             return nil, err
         end
 
+        if self.restore_body_buffer then
+            ngx_append_body(dummy)
+        end
+
         if not dummy then
             return 1
         end
@@ -180,15 +195,49 @@ local function read_body_part(self)
         return nil, nil, err
     end
 
+    -- everything OK we got another body chunk
+    if chunk then
+        if self.restore_body_buffer then
+            ngx_append_body(chunk)
+            ngx_append_body(self.boundary)
+        end
+
+        if self.boundary:sub(1,1) == '\n' and chunk:sub(-1,-1) == '\r' then
+            chunk = chunk:sub(1,-2)
+        end
+
+        return "body", chunk
+    end
+
+    -- boundary not found, maybe end of body
     if not chunk then
         local sock = self.sock
+        local data = sock:receive(1)
 
-        local data = sock:receive(2)
-        if data == "--" then
+        -- neither -- or line_break, something's wrong
+        if data ~= "-" and data ~= self.line_break:sub(1,1) then
             if self.restore_body_buffer then
-                ngx_append_body("\r\n--" .. self.boundary .. "--\r\n")
+                ngx_append_body(data)
             end
+            local ok, err = discard_line(self)
+            if not ok then
+                return nil, nil, err
+            end
+        end
 
+        if data ~= self.line_break then
+            local next = sock:receive(1)
+            data = data .. next
+        end
+
+        if self.restore_body_buffer then
+            ngx_append_body(data)
+        end
+
+        if data == self.line_break then
+            self.state = STATE_READING_HEADER
+            return "part_end"
+        elseif data == "--" then
             local ok, err = discard_rest(self)
             if not ok then
                 return nil, nil, err
@@ -196,28 +245,15 @@ local function read_body_part(self)
 
             self.state = STATE_EOF
             return "part_end"
-        end
-
-        if data ~= "\r\n" then
+        else
+            -- something's wrong
             local ok, err = discard_line(self)
             if not ok then
                 return nil, nil, err
             end
         end
-
-        if self.restore_body_buffer then
-            ngx_append_body("\r\n--" .. self.boundary .. "\r\n")
-        end
-
-        self.state = STATE_READING_HEADER
-        return "part_end"
     end
 
-    if self.restore_body_buffer then
-        ngx_append_body(chunk)
-    end
-
-    return "body", chunk
 end
 
 
@@ -234,7 +270,8 @@ local function read_header(self)
     end
 
     if self.restore_body_buffer then
-        ngx_append_body(line .. "\r\n")
+        ngx_append_body(line)
+        ngx_append_body(self.line_break)
     end
 
     local dummy, err = read_line(1)
@@ -254,6 +291,9 @@ local function read_header(self)
         return nil, nil, err
     end
 
+    if self.line_break == "\n" and line:sub(-1,-1) == '\r' then
+        line = line:sub(1,-2)
+    end
     -- print("read line: ", line)
 
     if line == "" then
@@ -305,9 +345,9 @@ local function read_preamble(self)
         local preamble = read2boundary(size)
         if not preamble then
             if self.restore_body_buffer then
-                ngx_append_body("--" .. self.boundary)
+                ngx_append_body(self.boundary)
             end
-            
+
             break
 
         else if self.restore_body_buffer then
@@ -324,7 +364,8 @@ local function read_preamble(self)
         return nil, nil, err
     end
 
-    local read2boundary, err = sock:receiveuntil("\r\n--" .. self.boundary)
+    self.boundary = self.line_break .. self.boundary
+    local read2boundary, err = sock:receiveuntil(self.boundary)
     if not read2boundary then
         return nil, nil, err
     end
