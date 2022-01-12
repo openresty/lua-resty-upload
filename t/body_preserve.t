@@ -91,6 +91,7 @@ remain body:
 --- config
     location /t {
         content_by_lua '
+            local original_len = ngx.req.get_headers()["Content-Length"]
             local upload = require "resty.upload"
             local ljson = require "ljson"
 
@@ -115,7 +116,7 @@ remain body:
             local typ, res, err = form:read()
             ngx.say("read: ", ljson.encode({typ, res}))
 
-            ngx.say("remain body length changed: ", #ngx.req.get_body_data() ~= ngx.req.get_headers()["Content-Length"])
+            ngx.say("remain body length changed: ", #ngx.req.get_body_data() ~= original_len)
         ';
     }
 --- more_headers
