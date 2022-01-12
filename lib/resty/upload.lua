@@ -7,6 +7,9 @@ local match = string.match
 local setmetatable = setmetatable
 local type = type
 local ngx_var = ngx.var
+local ngx_init_body = ngx.req.init_body
+local ngx_finish_body = ngx.req.finish_body
+local ngx_append_body = ngx.req.append_body
 -- local print = print
 
 
@@ -21,11 +24,45 @@ local STATE_READING_HEADER = 2
 local STATE_READING_BODY = 3
 local STATE_EOF = 4
 
+local function warped_receiveuntil(self, until_str)
+    local iter, err_outer = self:old_receiveuntil(until_str)
+    if iter == nil then
+        ngx_finish_body()
+    end
+
+    local function warped(size)
+        local ret, err = iter(size)
+        if ret then
+            ngx_append_body(ret)
+        end
+        -- successful size call and nil ret, or non-nil ret
+        if not err then
+            ngx_append_body(until_str)
+        end
+        return ret, err
+    end
+    return warped, err_outer
+end
+
+local function warped_receive(self, arg)
+    local ret, err = self:old_receive(arg)
+    if ret == nil then
+        ngx_finish_body()
+    end
+    return ret, err
+end
+
+local function req_socket_body_collector(sock)
+    sock.old_receiveuntil = sock.receiveuntil
+    sock.old_receive = sock.receive
+    sock.receiveuntil = warped_receiveuntil
+    sock.receive = warped_receive
+end
+
 
 local mt = { __index = _M }
 
 local state_handlers
-
 
 local function get_boundary()
     local header = ngx_var.content_type
@@ -46,7 +83,7 @@ local function get_boundary()
 end
 
 
-function _M.new(self, chunk_size, max_line_size)
+function _M.new(self, chunk_size, max_line_size, preserve_body)
     local boundary = get_boundary()
 
     -- print("boundary: ", boundary)
@@ -60,6 +97,11 @@ function _M.new(self, chunk_size, max_line_size)
     local sock, err = req_socket()
     if not sock then
         return nil, err
+    end
+
+    if preserve_body then
+        ngx_init_body(chunk_size)
+        req_socket_body_collector(sock)
     end
 
     local read2boundary, err = sock:receiveuntil("--" .. boundary)
@@ -79,7 +121,8 @@ function _M.new(self, chunk_size, max_line_size)
         read2boundary = read2boundary,
         read_line = read_line,
         boundary = boundary,
-        state = STATE_BEGIN
+        state = STATE_BEGIN,
+        preserve_body = preserve_body
     }, mt)
 end
 
@@ -104,6 +147,9 @@ local function discard_line(self)
 
     local dummy, err = read_line(1)
     if dummy then
+        if self.preserve_body then
+            ngx_finish_body()
+        end
         return nil, "line too long: " .. line .. dummy .. "..."
     end
 
@@ -179,6 +225,9 @@ local function read_header(self)
 
     local dummy, err = read_line(1)
     if dummy then
+        if self.preserve_body then
+            ngx_finish_body()
+        end
         return nil, nil, "line too long: " .. line .. dummy .. "..."
     end
 
@@ -203,7 +252,10 @@ local function read_header(self)
 end
 
 
-local function eof()
+local function eof(self)
+    if self.preserve_body then
+        ngx_finish_body()
+    end
     return "eof", nil
 end
 
