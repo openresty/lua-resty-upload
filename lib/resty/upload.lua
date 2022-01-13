@@ -35,8 +35,8 @@ local function warped_receiveuntil(self, until_str)
         if ret then
             ngx_append_body(ret)
         end
-        -- successful size call and nil ret, or non-nil ret
-        if not err then
+        -- non-nil ret for call with no size or successful size call and nil ret
+        if (not size and ret) or (size and not ret and not err) then
             ngx_append_body(until_str)
         end
         return ret, err
@@ -48,6 +48,8 @@ local function warped_receive(self, arg)
     local ret, err = self:old_receive(arg)
     if ret == nil then
         ngx_finish_body()
+    else
+        ngx_append_body(ret)
     end
     return ret, err
 end
