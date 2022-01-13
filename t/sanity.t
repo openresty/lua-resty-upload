@@ -741,7 +741,14 @@ remain body:
 
             local typ, res, err = form:read()
 
-            ngx.say("remain body length changed: ", #ngx.req.get_body_data() ~= original_len)
+            local body = ngx.req.get_body_data()
+            local new_len
+            if body then
+                new_len = #body
+            else
+                new_len = io.open(ngx.req.get_body_file(), "r"):seek("end")
+            end
+            ngx.say("remain body length changed: ", new_len ~= original_len)
         ';
     }
 --- more_headers
