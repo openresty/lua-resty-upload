@@ -679,7 +679,7 @@ read: ["eof"]
             local typ, res, err = form:read()
             ngx.say("read: ", ljson.encode({typ, res}))
 
-            ngx.say("remain body: ", ngx.req.get_body_data())
+            ngx.say("remain body: ", ngx.req.get_body_data(), ',', ngx.req.get_body_file())
         ';
     }
 --- more_headers
@@ -708,7 +708,7 @@ read: ["body","\r\n"]
 read: ["part_end"]
 read: ["eof"]
 read: ["eof"]
-remain body: 
+remain body: nil,nil
 --- no_error_log
 [error]
 
