@@ -258,7 +258,7 @@ local function read_header(self)
 end
 
 
-local function eof(self)
+local function eof()
     return "eof", nil
 end
 
