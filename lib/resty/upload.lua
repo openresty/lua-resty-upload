@@ -45,11 +45,15 @@ local function warped_receiveuntil(self, until_str)
 end
 
 local function warped_receive(self, arg)
-    local ret, err = self:old_receive(arg)
+    local ret, err, partial = self:old_receive(arg)
+    if ret then
+        ngx_append_body(ret)
+    elseif partial then
+        ngx_append_body(partial)
+    end
+
     if ret == nil then
         ngx_finish_body()
-    else
-        ngx_append_body(ret)
     end
     return ret, err
 end
