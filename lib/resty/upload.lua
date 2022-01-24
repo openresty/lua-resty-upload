@@ -260,8 +260,7 @@ end
 
 local function eof(self)
     if self.preserve_body then
-        self.sock:receive('*a')
-        ngx_finish_body()
+        discard_rest(self)
     end
     return "eof", nil
 end
