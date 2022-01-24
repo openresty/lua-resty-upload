@@ -748,7 +748,8 @@ remain body: nil,nil
             else
                 new_len = io.open(ngx.req.get_body_file(), "r"):seek("end")
             end
-            ngx.say("remain body length changed: ", new_len ~= original_len)
+            ngx.say("content_length: ", original_len)
+            ngx.say("remain body length: ", new_len)
         ';
     }
 --- more_headers
@@ -765,7 +766,8 @@ value\r
 \r\n-----------------------------820127721219505131303151179--\r
 }
 --- response_body
-remain body length changed: false
+content_length: 338
+remain body length: 338
 
 --- no_error_log
 [error]
