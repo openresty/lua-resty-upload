@@ -259,9 +259,6 @@ end
 
 
 local function eof(self)
-    if self.preserve_body then
-        discard_rest(self)
-    end
     return "eof", nil
 end
 
