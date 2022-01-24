@@ -766,8 +766,8 @@ value\r
 \r\n-----------------------------820127721219505131303151179--\r
 }
 --- response_body
-content_length: 338
-remain body length: 338
+content_length: 336
+remain body length: 336
 
 --- no_error_log
 [error]
