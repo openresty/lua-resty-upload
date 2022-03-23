@@ -66,7 +66,7 @@ end
 local function req_socket_body_collector(sock)
     sock.old_receiveuntil = sock.receiveuntil
     sock.old_receive = sock.receive
-    sock.receiveuntil = warped_receiveuntil
+    sock.receiveuntil = warpped_receiveuntil
     sock.receive = warped_receive
 end
 
