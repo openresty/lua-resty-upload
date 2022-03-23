@@ -24,7 +24,7 @@ local STATE_READING_HEADER = 2
 local STATE_READING_BODY = 3
 local STATE_EOF = 4
 
-local function warped_receiveuntil(self, until_str)
+local function warpped_receiveuntil(self, until_str)
     local iter, err_outer = self:old_receiveuntil(until_str)
     if iter == nil then
         ngx_finish_body()
@@ -35,12 +35,14 @@ local function warped_receiveuntil(self, until_str)
         if ret then
             ngx_append_body(ret)
         end
+
         -- non-nil ret for call with no size or successful size call and nil ret
         if (not size and ret) or (size and not ret and not err) then
             ngx_append_body(until_str)
         end
         return ret, err
     end
+
     return warped, err_outer
 end
 
@@ -48,6 +50,7 @@ local function warped_receive(self, arg)
     local ret, err, partial = self:old_receive(arg)
     if ret then
         ngx_append_body(ret)
+
     elseif partial then
         ngx_append_body(partial)
     end
@@ -55,8 +58,10 @@ local function warped_receive(self, arg)
     if ret == nil then
         ngx_finish_body()
     end
+
     return ret, err
 end
+
 
 local function req_socket_body_collector(sock)
     sock.old_receiveuntil = sock.receiveuntil
@@ -156,6 +161,7 @@ local function discard_line(self)
         if self.preserve_body then
             ngx_finish_body()
         end
+
         return nil, "line too long: " .. line .. dummy .. "..."
     end
 
@@ -234,6 +240,7 @@ local function read_header(self)
         if self.preserve_body then
             ngx_finish_body()
         end
+ 
         return nil, nil, "line too long: " .. line .. dummy .. "..."
     end
 
