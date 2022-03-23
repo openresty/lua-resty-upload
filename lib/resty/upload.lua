@@ -24,6 +24,10 @@ local STATE_READING_HEADER = 2
 local STATE_READING_BODY = 3
 local STATE_EOF = 4
 
+local mt = { __index = _M }
+
+local state_handlers
+
 local function warpped_receiveuntil(self, until_str)
     local iter, err_outer = self:old_receiveuntil(until_str)
     if iter == nil then
@@ -45,6 +49,7 @@ local function warpped_receiveuntil(self, until_str)
 
     return warped, err_outer
 end
+
 
 local function warped_receive(self, arg)
     local ret, err, partial = self:old_receive(arg)
@@ -70,10 +75,6 @@ local function req_socket_body_collector(sock)
     sock.receive = warped_receive
 end
 
-
-local mt = { __index = _M }
-
-local state_handlers
 
 local function get_boundary()
     local header = ngx_var.content_type
