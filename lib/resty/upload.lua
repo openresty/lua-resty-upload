@@ -28,7 +28,7 @@ local mt = { __index = _M }
 
 local state_handlers
 
-local function warpped_receiveuntil(self, until_str)
+local function wrapped_receiveuntil(self, until_str)
     local iter, err_outer = self:old_receiveuntil(until_str)
     if iter == nil then
         ngx_finish_body()
@@ -71,7 +71,7 @@ end
 local function req_socket_body_collector(sock)
     sock.old_receiveuntil = sock.receiveuntil
     sock.old_receive = sock.receive
-    sock.receiveuntil = warpped_receiveuntil
+    sock.receiveuntil = wrapped_receiveuntil
     sock.receive = warped_receive
 end
 
