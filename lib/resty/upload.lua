@@ -34,7 +34,7 @@ local function wrapped_receiveuntil(self, until_str)
         ngx_finish_body()
     end
 
-    local function warped(size)
+    local function wrapped(size)
         local ret, err = iter(size)
         if ret then
             ngx_append_body(ret)
@@ -47,11 +47,11 @@ local function wrapped_receiveuntil(self, until_str)
         return ret, err
     end
 
-    return warped, err_outer
+    return wrapped, err_outer
 end
 
 
-local function warped_receive(self, arg)
+local function wrapped_receive(self, arg)
     local ret, err, partial = self:old_receive(arg)
     if ret then
         ngx_append_body(ret)
@@ -72,7 +72,7 @@ local function req_socket_body_collector(sock)
     sock.old_receiveuntil = sock.receiveuntil
     sock.old_receive = sock.receive
     sock.receiveuntil = wrapped_receiveuntil
-    sock.receive = warped_receive
+    sock.receive = wrapped_receive
 end
 
 
