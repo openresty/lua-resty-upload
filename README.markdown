@@ -166,13 +166,15 @@ Usage
 
 ```lua
 local upload = require "resty.upload"
-local form, err = upload:new(self, chunk_size, max_line_size, preserve_body)
+local form, err = upload:new(self, chunk_size, max_line_size, preserve_body, lf_line_break)
 ```
 `chunk_size` defaults to 4096. It is the size used to read data from the socket.
 
 `max_line_size` defaults to 512. It is the size limit to read the chunked body header.
 
 By Default, `lua-resty-upload` will consume the request body. For proxy mode this means upstream will not see the body. When `preserve_body` is set to true, the request body will be preserved. Note that this option is not free. When enabled, it will double the memory usage of `resty.upload`.
+
+By Default, `lua-resty-upload` forbids using only LF(`'\n'`) as linebreak in multipart boundary. To be compatible with LF line break, set `lf_line_break` to true.
 
 Author
 ======
