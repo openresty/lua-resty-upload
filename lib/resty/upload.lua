@@ -5,7 +5,6 @@
 local req_socket = ngx.req.socket
 local match = string.match
 local setmetatable = setmetatable
-local type = type
 local ngx_var = ngx.var
 local ngx_init_body = ngx.req.init_body
 local ngx_finish_body = ngx.req.finish_body
@@ -80,10 +79,6 @@ local function get_boundary()
     local header = ngx_var.content_type
     if not header then
         return nil
-    end
-
-    if type(header) == "table" then
-        header = header[1]
     end
 
     local m = match(header, ";%s*boundary=\"([^\"]+)\"")
