@@ -94,8 +94,26 @@ local function get_boundary()
     return match(header, ";%s*boundary=([^\",;]+)")
 end
 
+local function read_line_construct(sock, lf_line_break)
+    local line_end = "\r\n"
+    if lf_line_break then
+        line_end = "\n"
+    end
+    local read_line, err = sock:receiveuntil(line_end)
+    if lf_line_break and read_line then
+        return function (arg)
+            local ret, err_inner = read_line(arg)
+            if ret and ret:sub(-1,-1) == '\r' then
+                ret = ret:sub(1,-2)
+            end
+            return ret, err_inner
+        end
+    else
+        return read_line, err
+    end
+end
 
-function _M.new(self, chunk_size, max_line_size, preserve_body)
+function _M.new(self, chunk_size, max_line_size, preserve_body, lf_line_break)
     local boundary = get_boundary()
 
     -- print("boundary: ", boundary)
@@ -121,7 +139,7 @@ function _M.new(self, chunk_size, max_line_size, preserve_body)
         return nil, err
     end
 
-    local read_line, err = sock:receiveuntil("\r\n")
+    local read_line, err = read_line_construct(sock, lf_line_break)
     if not read_line then
         return nil, err
     end
@@ -134,7 +152,8 @@ function _M.new(self, chunk_size, max_line_size, preserve_body)
         read_line = read_line,
         boundary = boundary,
         state = STATE_BEGIN,
-        preserve_body = preserve_body
+        preserve_body = preserve_body,
+        lf_line_break = lf_line_break
     }, mt)
 end
 
@@ -202,7 +221,17 @@ local function read_body_part(self)
     if not chunk then
         local sock = self.sock
 
-        local data = sock:receive(2)
+        local data, err = sock:receive(1)
+
+        -- partial lookahead: -- or CRLF?
+        if data == "-" or data == "\r" then
+            local next
+            next, err = sock:receive(1)
+            if next then
+                data = data .. next
+            end
+        end
+
         if data == "--" then
             local ok, err = discard_rest(self)
             if not ok then
@@ -213,7 +242,7 @@ local function read_body_part(self)
             return "part_end"
         end
 
-        if data ~= "\r\n" then
+        if data ~= "\r\n" and not (data == "\n" and self.lf_line_break) then
             local ok, err = discard_line(self)
             if not ok then
                 return nil, nil, err
